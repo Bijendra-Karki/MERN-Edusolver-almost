@@ -1,13 +1,20 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { ChevronDown, Eye, UserPlus } from "lucide-react"
 
 export default function ExpertsDropdown() {
   const [isOpen, setIsOpen] = useState(false)
+  const navigate = useNavigate()
 
   const toggleDropdown = () => setIsOpen(!isOpen)
+
   const handleOptionClick = (option) => {
     console.log("Selected option:", option)
     setIsOpen(false)
+
+    if (option === "Add Register New Expert and Drop Teacher") {
+      navigate("/TeacherAddpage")
+    }
   }
 
   return (
@@ -17,7 +24,9 @@ export default function ExpertsDropdown() {
         className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100 flex items-center justify-between"
       >
         <span>View Experts</span>
-        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`w-4 h-4 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        />
       </button>
 
       {isOpen && (

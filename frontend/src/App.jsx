@@ -9,7 +9,7 @@ import LandingPage from "./components/home/LandingPage"
 import MainAbout from "./components/about/MainAbout"
 import Service from "./components/service/Service"
 import ContactPage from "./components/Contact/ContactPage"
-import LoginPage from "./components/auth/LoginPage"
+import LoginPage from "./components/pages/LoginPage"
 import ExpertPanel from "./Export/ExpertPanel"
 import ClientPanel from "./client/ClientPanel"
 import AdminPanel from "./Admin/AdminPanel"
@@ -21,12 +21,16 @@ import StudyGroupsPage from "./client/Components/StudyGroupsPage"
 import ProjectsPage from "./client/Components/ProjectsPage"
 import Feed from "./components/feed/Feed"
 import Navbar from "./components/ToperFooter/Navbar"
+import CourseAddpage from "./Admin/page/CourseAddpage"
+import TeacherAddpage from "./Admin/page/TeacherAddpage"
+import Responsepage from "./Admin/page/Responsepage"
+import Exampage from "./Admin/page/Exampage"
+import EsewaPaymentPage from "./client/Components/EsewaPaymentPage"
 
 function AppContent() {
   const location = useLocation()
   const [user, setUser] = useState(null)
 
-  // Navigation links for the app
   const navLinks = [
     { path: "/", label: "Home" },
     { path: "/about", label: "About" },
@@ -34,25 +38,24 @@ function AppContent() {
     { path: "/contact", label: "Contact" },
   ]
 
-  // Routes where navbar should not be displayed
-  const noNavbarRoutes = ["/login", "/google-login", "/clientPanel", "/adminPanel", "/expertPanel"]
-
-  // Check if current route should show navbar
+  const noNavbarRoutes = ["/login"]
   const shouldShowNavbar = !noNavbarRoutes.includes(location.pathname)
 
+  // ✅ Re-check user whenever location changes
   useEffect(() => {
-    // Check if user is logged in
     const userData = localStorage.getItem("user")
     if (userData) {
       try {
-        const parsedUser = JSON.parse(userData)
-        setUser(parsedUser)
+        setUser(JSON.parse(userData))
       } catch (error) {
         console.error("Error parsing user data:", error)
         localStorage.removeItem("user")
+        setUser(null)
       }
+    } else {
+      setUser(null)
     }
-  }, [])
+  }, [location]) // 👈 dependency here
 
   const handleLogout = () => {
     localStorage.removeItem("user")
@@ -66,17 +69,8 @@ function AppContent() {
     return path.substring(1)
   }
 
-  const GoogleAuthWrapper = () => {
-    return (
-      <GoogleOAuthProvider clientId="314824028312-1hh17m9aatjohq75fkdp7h268a13du5m.apps.googleusercontent.com">
-        <GoogleLogin />
-      </GoogleOAuthProvider>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-blue-100">
-      {/* Conditional Navbar - Only show on public pages */}
       {shouldShowNavbar && (
         <div className="sticky top-0 z-50 bg-white shadow-sm">
           <Navbar
@@ -89,12 +83,10 @@ function AppContent() {
         </div>
       )}
 
-      {/* Main Content */}
       <div className={shouldShowNavbar ? "pt-0" : ""}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/google-login" element={<GoogleAuthWrapper />} />
           <Route path="/clientPanel" element={<ClientPanel />} />
           <Route path="/adminPanel" element={<AdminPanel />} />
           <Route path="/expertPanel" element={<ExpertPanel />} />
@@ -109,6 +101,11 @@ function AppContent() {
           <Route path="/study-groups" element={<StudyGroupsPage />} />
           <Route path="/feed" element={<Feed />} />
           <Route path="*" element={<PageNotFound />} />
+          <Route path="/TeacherAddpage" element={<TeacherAddpage />} />
+          <Route path="/CourseAddpage" element={<CourseAddpage />} />
+          <Route path="/ResponseAddpage" element={<Responsepage />} />
+          <Route path="/Exampage" element={<Exampage />} />
+          <Route path="/esewa-payment" element={<EsewaPaymentPage />} />
         </Routes>
       </div>
     </div>

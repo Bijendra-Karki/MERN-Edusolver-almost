@@ -483,35 +483,7 @@ export default function ExpertPanel() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
-      <header className="bg-gradient-to-br from-blue-700 to-blue-900 shadow-sm w-full">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-3 sm:py-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <img
-                src={Logo || "/placeholder.svg"}
-                alt="EduSolver Logo"
-                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover"
-              />
-              <div className="flex flex-col items-start">
-                <span className="text-lg sm:text-2xl font-bold text-white">EduSolver</span>
-                <span className="text-xs sm:text-sm text-white/90 hidden sm:block">Welcome, Expert Panel</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <span className="text-white text-xs sm:text-sm lg:text-base hidden sm:inline">Welcome, {user.name}</span>
-              <span className="text-white text-xs sm:hidden">Hi, {user.name.split(" ")[0]}</span>
-              <Button
-                label="Logout"
-                onClick={handleLogout}
-                icon={<LogOut size={14} />}
-                className="text-xs px-2 py-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white"
-              />
-            </div>
-          </div>
-        </div>
-      </header>
-
+     
       {/* Navigation Tabs */}
       <div className="w-full px-2 sm:px-4 lg:px-8 py-2 sm:py-4">
         <div className="flex flex-wrap gap-1 sm:gap-2 lg:gap-4 mb-4 sm:mb-6 overflow-x-auto">

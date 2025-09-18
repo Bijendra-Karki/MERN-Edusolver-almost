@@ -1,7 +1,8 @@
 import express from 'express';
 import {
     requireUser,
-    requireInstructor
+    requireInstructor,
+    requireAdmin
 } from '../controllers/authController.js';
 import {
     createExam,
@@ -12,10 +13,10 @@ import {
 const router = express.Router();
 
 // Instructor/Admin manage exams
-router.post('/create', requireUser, requireInstructor, createExam);
+router.post('/createExam', requireUser,requireAdmin, requireInstructor, createExam);
 
 // All users can view exams
-router.get('/', requireUser, getExams);
-router.get('/:id', requireUser, getExamById);
+router.get('/examlist', requireUser, getExams);
+router.get('/examDetails/:id', requireUser, getExamById);
 
 export default router;

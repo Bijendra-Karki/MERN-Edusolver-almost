@@ -14,13 +14,11 @@ dotenv.config();
 import authRoutes from './routes/authRoutes.js';
 import queryRoutes from './routes/queryRoutes.js';
 import examRoutes from './routes/examRoutes.js';
-import paymentRoutes from "./routes/paymentRoutes.js"
+import paymentRoutes from "./routes/enroll/paymentRoutes.js"
 import responseRoutes from "./routes/responseRoutes.js"
 import questionRoutes from './routes/questionRoutes.js';
-
-
-
-
+import subjectRoutes from './routes/subjectRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
 
 
 // ===== DB Connection =====
@@ -36,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors());
 app.use(morgan('dev'))
+app.use('/uploads', express.static('uploads'));  // serve uploaded files
 
 
 
@@ -46,6 +45,11 @@ app.use('/api/response', responseRoutes);
 app.use('/api/exam', examRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/subjects', subjectRoutes);
+app.use("/api/enrollments", paymentRoutes);
+
+
 
 // ===== Error handling =====
 app.use((err, req, res, next) => {

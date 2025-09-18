@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 dotenv.config(); // make sure .env is loaded
 
 const connection=mongoose.connect(process.env.DATABASE, {
+     useNewUrlParser: true,
+    useUnifiedTopology: true,
   
 })
 .then(() => console.log("✅ Database connected"))

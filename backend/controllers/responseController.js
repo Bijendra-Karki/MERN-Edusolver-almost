@@ -1,17 +1,5 @@
 import Response from '../models/responseModel.js';
 
-// GET all responses
-export const getResponses = async (req, res) => {
-    try {
-        const responses = await Response.find()
-            .populate('user_id', 'name email')
-            .populate('query_id', 'text');
-        res.json(responses);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
-
 // GET responses by query ID
 export const getResponsesByQuery = async (req, res) => {
     try {
@@ -23,10 +11,10 @@ export const getResponsesByQuery = async (req, res) => {
     }
 };
 
-// CREATE response
-export const createResponse = async (req, res) => {
+// CREATE response (instructor/admin)
+export const respondToQuery = async (req, res) => {
     try {
-        const response = new Response(req.body);
+        const response = new Response({ ...req.body, user_id: req.user._id });
         await response.save();
         res.status(201).json(response);
     } catch (err) {
@@ -34,22 +22,26 @@ export const createResponse = async (req, res) => {
     }
 };
 
-// UPDATE response
-export const updateResponse = async (req, res) => {
+// UPDATE response (instructor/admin)
+export const editResponse = async (req, res) => {
     try {
-        const response = await Response.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!response) return res.status(404).json({ error: 'Response not found' });
+        const response = await Response.findOneAndUpdate(
+            { _id: req.params.id, user_id: req.user._id },
+            req.body,
+            { new: true }
+        );
+        if (!response) return res.status(404).json({ error: 'Response not found or not authorized' });
         res.json(response);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 };
 
-// DELETE response
+// DELETE response (instructor/admin)
 export const deleteResponse = async (req, res) => {
     try {
-        const response = await Response.findByIdAndDelete(req.params.id);
-        if (!response) return res.status(404).json({ error: 'Response not found' });
+        const response = await Response.findOneAndDelete({ _id: req.params.id, user_id: req.user._id });
+        if (!response) return res.status(404).json({ error: 'Response not found or not authorized' });
         res.json({ msg: 'Response deleted successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });

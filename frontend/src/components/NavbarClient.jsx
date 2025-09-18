@@ -4,7 +4,7 @@ import Navbar from "./ToperFooter/Navbar"
 
 
 const navLinks = [
-  { path: "/clientPanel", label: "Home" },
+  { path: "/", label: "Home" },
   { path: "/cabout", label: "About" },
   { path: "/cservice", label: "Services" },
   { path: "/ccontact", label: "Contact" },

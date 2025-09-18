@@ -3,17 +3,23 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Users, BookOpen, BarChart3, Settings, LogOut } from "lucide-react"
-import Logo2 from "../assets/Img/Logo2.png"; 
-import Button from "../components/button";
-import TeacherAdd from "./forms/TeacherAdd.jsx";
-import ExpertsDropdown from "./forms/ExpertsDropdown.jsx";
 
-  export default function AdminPanel() {
+import ExpertsDropdown from "./ExpertsDropdown";
+import HeaderNavbar from "./HeaderNavbar";
+import CourseOpener from "./CouserOpener";
+import ResponseOpener from "./ResponseOpener";
+import ExamOpener from "./ExamOpener";
+
+
+
+
+
+export default function AdminPanel() {
   const navigate = useNavigate()
   const [user, setUser] = useState(null)
 
   useEffect(() => {
-const userData = localStorage.getItem("user")
+    const userData = localStorage.getItem("user")
     if (userData) {
       const parsedUser = JSON.parse(userData)
       if (parsedUser.role !== "admin") {
@@ -42,22 +48,7 @@ const userData = localStorage.getItem("user")
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
-      <div className="bg-gradient-to-br from-blue-700 to-blue-900 backdrop-blur-sm border-b border-blue-100 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center space-x-2">
-                <img src={Logo2} alt="EduSolver Logo" className="w-16 h-16 rounded-full object-cover" />
-                <span className="text-2xl font-bold text-white">EduSolver</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-white">Welcome, {user.name}</span>
-              <Button label="Logout" onClick={handleLogout} icon={<LogOut size={16} />} />
-            </div>
-          </div>
-        </div>
-      </div>
+ 
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -69,10 +60,11 @@ const userData = localStorage.getItem("user")
           <StatCard icon={<Settings className="w-6 h-6 text-purple-600" />} label="System Status" value="Online" color="green" />
         </div>
 
-        <TeacherAdd />
+
 
         {/* Admin Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+          {/* user Management */}
           <div className="bg-white/90 backdrop-blur-sm border border-blue-100 rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-gray-800 mb-4">User Management</h2>
             <div className="space-y-3">
@@ -85,16 +77,28 @@ const userData = localStorage.getItem("user")
               </button>
             </div>
           </div>
-
+          {/* user Exam */}
+          <div className="bg-white/90 backdrop-blur-sm border border-blue-100 rounded-xl p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Exam Management</h2>
+            <div className="space-y-3">
+              <ExamOpener/>
+               <button className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
+                Exam Details
+              </button>
+              <button className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
+                User Result
+              </button>
+            </div>
+          </div>
+          {/* user content management */}
           <div className="bg-white/90 backdrop-blur-sm border border-blue-100 rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Content Management</h2>
             <div className="space-y-3">
               <button className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
                 Manage Courses
               </button>
-              <button className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
-                Add New Course
-              </button>
+              <CourseOpener />
+              <ResponseOpener />
               <button className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
                 Content Analytics
               </button>

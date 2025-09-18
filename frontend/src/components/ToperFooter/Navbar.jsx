@@ -1,9 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Link, useLocation, useNavigate } from "react-router-dom"
-import Logo2 from "../../assets/Img/Logo2.png"
-import Button from "../Button"
+import { useLocation, useNavigate, Link } from "react-router-dom"
 import {
   LogIn,
   Menu,
@@ -18,13 +16,24 @@ import {
   Info,
   Briefcase,
   Phone,
-  Shield,
   BookOpen,
   Award,
   HelpCircle,
   MessageSquare,
   Globe,
 } from "lucide-react"
+
+const Button = ({ children, className = "", onClick, ...props }) => {
+  return (
+    <button
+      className={`inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${className}`}
+      onClick={onClick}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
 
 function Navbar({ links = [], user = null, panelType = null, onLogout = null, activeTab = null, onTabChange = null }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -96,7 +105,7 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
         }
       }
     }
-  }, [activeTab, location])
+  }, [activeTab, location.pathname, location.search])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -136,6 +145,8 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
     setIsNotificationsOpen(!isNotificationsOpen)
     setIsUserDropdownOpen(false)
   }
+
+  
 
   const handleLogout = () => {
     if (onLogout) {
@@ -320,13 +331,15 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
               onClick={() => handleNavLinkClick("/")}
             >
               <img
-                src={Logo2 || "/placeholder.svg?height=64&width=64"}
+                src="/edusolver-logo.jpg"
                 alt="EduSolver Logo"
                 className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 rounded-full object-cover ring-2 ring-white/20 hover:ring-white/40 transition-all duration-300"
               />
               <div className="flex flex-col items-start">
-                <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white tracking-tight">EduSolver</span>
-                <span className="text-xs sm:text-sm text-white/80 hidden sm:block">
+                <span className="text-lg sm:text-xl lg:text-2xl font-bold text-white tracking-tight drop-shadow-sm">
+                  EduSolver
+                </span>
+                <span className="text-xs sm:text-sm text-white/90 hidden sm:block drop-shadow-sm">
                   {(() => {
                     switch (panelType) {
                       case "client":
@@ -409,7 +422,7 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
                   >
                     <Bell className="w-5 h-5" />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium animate-pulse">
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center font-medium animate-pulse">
                         {unreadCount > 9 ? "9+" : unreadCount}
                       </span>
                     )}
@@ -507,8 +520,6 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
 
                       {/* Menu Items */}
                       <div className="py-2">
-                      
-
                         <button
                           onClick={handleLogout}
                           className="flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 transition-colors w-full text-left"
@@ -523,11 +534,10 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
               </>
             ) : (
               <Link to="/login">
-                <Button
-                  label="Sign In"
-                  icon={<LogIn size={16} />}
-                  className="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 transition-all duration-200"
-                />
+                <Button className="bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 transition-all duration-200">
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign In
+                </Button>
               </Link>
             )}
           </div>
@@ -615,11 +625,10 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
 
             {!user && (
               <Link to="/login" className="lg:hidden">
-                <Button
-                  label="Login"
-                  icon={<LogIn size={14} />}
-                  className="text-xs px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20"
-                />
+                <Button className="text-xs px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20">
+                  <LogIn className="w-3 h-3 mr-1" />
+                  Login
+                </Button>
               </Link>
             )}
 
@@ -700,7 +709,7 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
 
                   <Link
                     to={panelType ? getNavigationPath("/") : "/profile"}
-                    className="flex items-center gap-3 text-black hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-200"
+                    className="flex items-center gap-3 text-white hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-200"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <User className="w-4 h-4" />
@@ -709,7 +718,7 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
 
                   <Link
                     to="/settings"
-                    className="flex items-center gap-3 text-black hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-200"
+                    className="flex items-center gap-3 text-white hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-200"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Settings className="w-4 h-4" />
@@ -718,7 +727,7 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
 
                   <Link
                     to="/help"
-                    className="flex items-center gap-3 text-black hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-200"
+                    className="flex items-center gap-3 text-white hover:text-white hover:bg-white/10 px-4 py-3 rounded-lg transition-all duration-200"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <HelpCircle className="w-4 h-4" />
@@ -727,7 +736,7 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
 
                   <button
                     onClick={handleLogout}
-                    className="flex items-center gap-3 text-blue-9000 hover:text-red-200 hover:bg-red-500/10 px-4 py-3 rounded-lg transition-all duration-200 w-full text-left"
+                    className="flex items-center gap-3 text-red-400 hover:text-red-200 hover:bg-red-500/10 px-4 py-3 rounded-lg transition-all duration-200 w-full text-left"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign Out

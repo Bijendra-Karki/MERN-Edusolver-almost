@@ -15,7 +15,7 @@ const examSchema = new Schema({
     },
     date: {
         type: Date,
-        required: true
+        required: false
     },
     total_marks: {
         type: Number,

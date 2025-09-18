@@ -1,3 +1,4 @@
+import e from 'express';
 import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
@@ -9,6 +10,19 @@ const userSchema = new Schema({
         type: String,
         required: true,
         trim: true
+    },
+      phone: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+      
+    },
+    semester: {
+        type: String,
+        trim: true,
+        default: null,
+        // required: true
     },
     email: {
         type: String,
@@ -31,7 +45,8 @@ const userSchema = new Schema({
     is_active: {
     type: Boolean,
     default: true
-    }
+    },
+      isVerified: { type: Boolean, default: false }
 
 
 

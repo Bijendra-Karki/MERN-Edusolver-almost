@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
+import axios from "axios"
 import {
   BookOpen,
   Clock,
@@ -19,17 +20,41 @@ import {
   PlayCircle,
   X,
 } from "lucide-react"
+// import { isAuthenticated } from '../../components/auth/AuthContainer' // Assuming this is your auth function
+
+// API function to post a new enrollment
+const postEnrollment = async (courseId, userId, token) => {
+  try {
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    };
+    const response = await axios.post(`/api/enrollment/enroll`, { courseId, userId }, config);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.error || 'Failed to enroll in the course.');
+  }
+};
 
 const CoursesPage = () => {
-  const [activeTab, setActiveTab] = useState("all-courses") // all-courses or my-courses
+  const [activeTab, setActiveTab] = useState("all-courses")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("popular")
   const [favorites, setFavorites] = useState(new Set())
   const [enrolledCourses, setEnrolledCourses] = useState(new Set())
-  const [courseProgress, setCourseProgress] = useState({}) // Track progress for each enrolled course
+  const [courseProgress, setCourseProgress] = useState({})
+  const [courses, setCourses] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [enrolling, setEnrolling] = useState(false); // New loading state for enrollment
 
-  // Load enrolled courses from localStorage on component mount
+  // Get user info and token
+  // const { user, token } = isAuthenticated();
+
+  // Load state from localStorage on component mount
   useEffect(() => {
     const savedEnrolledCourses = localStorage.getItem("enrolledCourses")
     const savedCourseProgress = localStorage.getItem("courseProgress")
@@ -46,7 +71,32 @@ const CoursesPage = () => {
     }
   }, [])
 
-  // Save to localStorage whenever enrolled courses change
+  // Fetch courses from the API
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoading(true)
+        const response = await axios.get("/api/subjects/subjectsList")
+        
+        if (response.data) {
+          const coursesData = response.data;
+          setCourses(coursesData);
+        } else {
+          setCourses([]);
+        }
+        
+        setError(null)
+      } catch (err) {
+        console.error("Failed to fetch courses:", err)
+        setError("Failed to load courses. Please try again later.")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchCourses()
+  }, [])
+
+  // Save state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("enrolledCourses", JSON.stringify([...enrolledCourses]))
   }, [enrolledCourses])
@@ -59,193 +109,23 @@ const CoursesPage = () => {
     localStorage.setItem("favoriteCourses", JSON.stringify([...favorites]))
   }, [favorites])
 
-  const courses = [
-    {
-      id: 1,
-      title: "Advanced Java Programming",
-      instructor: "Dr. Smith Johnson",
-      instructorAvatar: "/placeholder.svg?height=40&width=40",
-      duration: "12 weeks",
-      students: 245,
-      rating: 4.8,
-      reviews: 89,
-      level: "Advanced",
-      category: "programming",
-      image: "/placeholder.svg?height=200&width=300",
-      description: "Master advanced Java concepts including multithreading, collections, and design patterns.",
-      price: "Free",
-      skills: ["Java", "OOP", "Design Patterns", "Multithreading"],
-      lessons: 45,
-      certificates: true,
-      language: "English",
-      lastUpdated: "2024-01-15",
-      difficulty: 85,
-      estimatedHours: 60,
-    },
-    {
-      id: 2,
-      title: "Python for Data Science",
-      instructor: "Prof. Sarah Wilson",
-      instructorAvatar: "/placeholder.svg?height=40&width=40",
-      duration: "10 weeks",
-      students: 189,
-      rating: 4.9,
-      reviews: 156,
-      level: "Intermediate",
-      category: "data-science",
-      image: "/placeholder.svg?height=200&width=300",
-      description: "Learn Python programming with focus on data analysis and machine learning.",
-      price: "Free",
-      skills: ["Python", "Pandas", "NumPy", "Machine Learning"],
-      lessons: 38,
-      certificates: true,
-      language: "English",
-      lastUpdated: "2024-01-20",
-      difficulty: 65,
-      estimatedHours: 45,
-    },
-    {
-      id: 3,
-      title: "Web Development with React",
-      instructor: "John Martinez",
-      instructorAvatar: "/placeholder.svg?height=40&width=40",
-      duration: "8 weeks",
-      students: 312,
-      rating: 4.7,
-      reviews: 203,
-      level: "Intermediate",
-      category: "web-dev",
-      image: "/placeholder.svg?height=200&width=300",
-      description: "Build modern web applications using React, Redux, and modern JavaScript.",
-      price: "Free",
-      skills: ["React", "JavaScript", "Redux", "CSS"],
-      lessons: 32,
-      certificates: true,
-      language: "English",
-      lastUpdated: "2024-01-18",
-      difficulty: 70,
-      estimatedHours: 40,
-    },
-    {
-      id: 4,
-      title: "Database Management Systems",
-      instructor: "Dr. Emily Chen",
-      instructorAvatar: "/placeholder.svg?height=40&width=40",
-      duration: "14 weeks",
-      students: 156,
-      rating: 4.6,
-      reviews: 78,
-      level: "Intermediate",
-      category: "database",
-      image: "/placeholder.svg?height=200&width=300",
-      description: "Comprehensive course on SQL, NoSQL, and database design principles.",
-      price: "Free",
-      skills: ["SQL", "NoSQL", "Database Design", "MongoDB"],
-      lessons: 52,
-      certificates: true,
-      language: "English",
-      lastUpdated: "2024-01-12",
-      difficulty: 75,
-      estimatedHours: 70,
-    },
-    {
-      id: 5,
-      title: "Computer Networks",
-      instructor: "Prof. Michael Brown",
-      instructorAvatar: "/placeholder.svg?height=40&width=40",
-      duration: "16 weeks",
-      students: 203,
-      rating: 4.5,
-      reviews: 92,
-      level: "Advanced",
-      category: "networking",
-      image: "/placeholder.svg?height=200&width=300",
-      description: "Understanding network protocols, security, and network administration.",
-      price: "Free",
-      skills: ["TCP/IP", "Network Security", "Routing", "Protocols"],
-      lessons: 58,
-      certificates: true,
-      language: "English",
-      lastUpdated: "2024-01-10",
-      difficulty: 90,
-      estimatedHours: 80,
-    },
-    {
-      id: 6,
-      title: "Mobile App Development",
-      instructor: "Lisa Anderson",
-      instructorAvatar: "/placeholder.svg?height=40&width=40",
-      duration: "12 weeks",
-      students: 278,
-      rating: 4.8,
-      reviews: 134,
-      level: "Intermediate",
-      category: "mobile",
-      image: "/placeholder.svg?height=200&width=300",
-      description: "Create mobile applications for Android and iOS using React Native.",
-      price: "Free",
-      skills: ["React Native", "Mobile UI", "API Integration", "Publishing"],
-      lessons: 42,
-      certificates: true,
-      language: "English",
-      lastUpdated: "2024-01-22",
-      difficulty: 68,
-      estimatedHours: 55,
-    },
-  ]
-
   const categories = [
     { id: "all", name: "All Courses", count: courses.length, icon: BookOpen, color: "bg-blue-500" },
-    {
-      id: "programming",
-      name: "Programming",
-      count: courses.filter((c) => c.category === "programming").length,
+    ...[...new Set(courses.map(c => c.category?.name))].filter(Boolean).map(categoryName => ({
+      id: categoryName,
+      name: categoryName,
+      count: courses.filter(c => c.category?.name === categoryName).length,
       icon: BookOpen,
-      color: "bg-green-500",
-    },
-    {
-      id: "web-dev",
-      name: "Web Development",
-      count: courses.filter((c) => c.category === "web-dev").length,
-      icon: Globe,
-      color: "bg-purple-500",
-    },
-    {
-      id: "data-science",
-      name: "Data Science",
-      count: courses.filter((c) => c.category === "data-science").length,
-      icon: TrendingUp,
-      color: "bg-orange-500",
-    },
-    {
-      id: "database",
-      name: "Database",
-      count: courses.filter((c) => c.category === "database").length,
-      icon: BookOpen,
-      color: "bg-red-500",
-    },
-    {
-      id: "networking",
-      name: "Networking",
-      count: courses.filter((c) => c.category === "networking").length,
-      icon: Globe,
-      color: "bg-indigo-500",
-    },
-    {
-      id: "mobile",
-      name: "Mobile Dev",
-      count: courses.filter((c) => c.category === "mobile").length,
-      icon: BookOpen,
-      color: "bg-pink-500",
-    },
+      color: "bg-gray-500"
+    }))
   ]
 
   const filteredCourses = courses.filter((course) => {
-    const matchesCategory = selectedCategory === "all" || course.category === selectedCategory
+    const matchesCategory = selectedCategory === "all" || course.category?.name === selectedCategory
     const matchesSearch =
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.skills.some((skill) => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+      (Array.isArray(course.skills) && course.skills.some((skill) => skill.toLowerCase().includes(searchTerm.toLowerCase())))
     return matchesCategory && matchesSearch
   })
 
@@ -262,8 +142,7 @@ const CoursesPage = () => {
     }
   })
 
-  // Get enrolled courses
-  const myEnrolledCourses = courses.filter((course) => enrolledCourses.has(course.id))
+  const myEnrolledCourses = courses.filter((course) => enrolledCourses.has(course._id))
 
   const toggleFavorite = (courseId) => {
     const newFavorites = new Set(favorites)
@@ -275,34 +154,51 @@ const CoursesPage = () => {
     setFavorites(newFavorites)
   }
 
-  const enrollInCourse = (courseId) => {
-    const newEnrolledCourses = new Set(enrolledCourses)
-    newEnrolledCourses.add(courseId)
-    setEnrolledCourses(newEnrolledCourses)
+  // --- New and improved enrollInCourse function ---
+  const enrollInCourse = async (courseId) => {
+    if (!user || !token) {
+      alert("Please log in to enroll in a course.");
+      return;
+    }
+    if (enrolling) {
+      return; // Prevent multiple clicks
+    }
 
-    // Initialize progress for the course
-    setCourseProgress((prev) => ({
-      ...prev,
-      [courseId]: {
-        completedLessons: 0,
-        totalLessons: courses.find((c) => c.id === courseId)?.lessons || 0,
-        lastAccessed: new Date().toISOString(),
-        enrolledDate: new Date().toISOString(),
-        timeSpent: 0, // in minutes
-      },
-    }))
+    setEnrolling(true);
 
-    // Show success message
-    alert("Successfully enrolled in the course!")
-  }
+    try {
+      // API call to create enrollment record on the server
+      await postEnrollment(courseId, user._id, token);
+
+      // If successful, update local state
+      const newEnrolledCourses = new Set(enrolledCourses);
+      newEnrolledCourses.add(courseId);
+      setEnrolledCourses(newEnrolledCourses);
+
+      setCourseProgress((prev) => ({
+        ...prev,
+        [courseId]: {
+          completedLessons: 0,
+          totalLessons: courses.find((c) => c._id === courseId)?.lessons || 0,
+          lastAccessed: new Date().toISOString(),
+          enrolledDate: new Date().toISOString(),
+          timeSpent: 0,
+        },
+      }));
+      alert("Successfully enrolled in the course!");
+    } catch (error) {
+      console.error(error);
+      alert(error.message); // Show error message to user
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   const unenrollFromCourse = (courseId) => {
     if (window.confirm("Are you sure you want to unenroll from this course? Your progress will be lost.")) {
       const newEnrolledCourses = new Set(enrolledCourses)
       newEnrolledCourses.delete(courseId)
       setEnrolledCourses(newEnrolledCourses)
-
-      // Remove progress data
       setCourseProgress((prev) => {
         const newProgress = { ...prev }
         delete newProgress[courseId]
@@ -347,41 +243,27 @@ const CoursesPage = () => {
     return Math.round((progress.completedLessons / progress.totalLessons) * 100)
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-          <div className="text-center">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-              CSIT Courses
-              <span className="block text-2xl sm:text-3xl lg:text-4xl font-normal text-blue-100 mt-2">
-                Master Technology Skills
-              </span>
-            </h1>
-            <p className="text-xl text-blue-100 max-w-3xl mx-auto mb-8">
-              Enhance your programming and technical skills with our comprehensive courses designed by industry experts
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 text-blue-100">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5" />
-                <span>Free Courses</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Award className="w-5 h-5" />
-                <span>Certificates</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                <span>Expert Instructors</span>
-              </div>
-            </div>
-          </div>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center">
+          <svg className="animate-spin h-10 w-10 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span className="mt-4 text-gray-600">Loading courses...</span>
         </div>
       </div>
+    )
+  }
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  if (error) {
+    return <div className="min-h-screen flex items-center justify-center text-red-500 font-medium">{error}</div>
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="max-w-xxl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Tab Navigation */}
         <div className="mb-8">
           <div className="flex gap-4 border-b border-gray-200">
@@ -416,7 +298,7 @@ const CoursesPage = () => {
           </div>
         </div>
 
-        {/* All Courses Tab */}
+{/* All Courses Tab */}
         {activeTab === "all-courses" && (
           <>
             {/* Search and Filter Section */}
@@ -427,19 +309,18 @@ const CoursesPage = () => {
                     <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
                       type="text"
-                      placeholder="Search courses, instructors, or skills..."
+                      placeholder="Search courses"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm text-gray-800 placeholder-gray-500"
                     />
                   </div>
                 </div>
-
                 <div className="flex gap-4">
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="px-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
+                    className="px-4 py-4 border border-gray-200 text-black rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white/90 backdrop-blur-sm"
                   >
                     <option value="popular">Most Popular</option>
                     <option value="rating">Highest Rated</option>
@@ -448,7 +329,6 @@ const CoursesPage = () => {
                   </select>
                 </div>
               </div>
-
               <div className="mt-6">
                 <div className="flex gap-3 overflow-x-auto pb-2">
                   {categories.map((category) => {
@@ -500,7 +380,7 @@ const CoursesPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
               {sortedCourses.map((course) => (
                 <div
-                  key={course.id}
+                  key={course._id}
                   className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-white/20 hover:scale-[1.02]"
                 >
                   {/* Course Image */}
@@ -511,18 +391,17 @@ const CoursesPage = () => {
                       className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
                     {/* Overlay Actions */}
                     <div className="absolute top-4 right-4 flex gap-2">
                       <button
-                        onClick={() => toggleFavorite(course.id)}
+                        onClick={() => toggleFavorite(course._id)}
                         className={`p-2 rounded-full backdrop-blur-sm transition-all duration-300 ${
-                          favorites.has(course.id)
+                          favorites.has(course._id)
                             ? "bg-red-500 text-white"
                             : "bg-white/80 text-gray-600 hover:bg-white"
                         }`}
                       >
-                        <Heart className={`w-4 h-4 ${favorites.has(course.id) ? "fill-current" : ""}`} />
+                        <Heart className={`w-4 h-4 ${favorites.has(course._id) ? "fill-current" : ""}`} />
                       </button>
                       <button className="p-2 rounded-full bg-white/80 text-gray-600 hover:bg-white backdrop-blur-sm transition-all duration-300">
                         <Share2 className="w-4 h-4" />
@@ -530,7 +409,7 @@ const CoursesPage = () => {
                     </div>
 
                     {/* Enrollment Status */}
-                    {enrolledCourses.has(course.id) && (
+                    {enrolledCourses.has(course._id) && (
                       <div className="absolute top-4 left-4">
                         <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                           <CheckCircle className="w-3 h-3" />
@@ -540,7 +419,7 @@ const CoursesPage = () => {
                     )}
 
                     {/* Level Badge */}
-                    {!enrolledCourses.has(course.id) && (
+                    {!enrolledCourses.has(course._id) && (
                       <div className="absolute top-4 left-4">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold border backdrop-blur-sm ${getLevelColor(
@@ -578,7 +457,7 @@ const CoursesPage = () => {
                     {/* Skills */}
                     <div className="mb-4">
                       <div className="flex flex-wrap gap-1">
-                        {course.skills.slice(0, 3).map((skill, index) => (
+                        {Array.isArray(course.skills) && course.skills.slice(0, 3).map((skill, index) => (
                           <span
                             key={index}
                             className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-lg font-medium"
@@ -586,7 +465,7 @@ const CoursesPage = () => {
                             {skill}
                           </span>
                         ))}
-                        {course.skills.length > 3 && (
+                        {Array.isArray(course.skills) && course.skills.length > 3 && (
                           <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg font-medium">
                             +{course.skills.length - 3} more
                           </span>
@@ -618,7 +497,7 @@ const CoursesPage = () => {
 
                     {/* Action Buttons */}
                     <div className="flex gap-3">
-                      {enrolledCourses.has(course.id) ? (
+                      {enrolledCourses.has(course._id) ? (
                         <button
                           onClick={() => setActiveTab("my-courses")}
                           className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold flex items-center justify-center gap-2"
@@ -628,11 +507,19 @@ const CoursesPage = () => {
                         </button>
                       ) : (
                         <button
-                          onClick={() => enrollInCourse(course.id)}
+                          onClick={() => enrollInCourse(course._id)}
                           className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold flex items-center justify-center gap-2 group"
+                          disabled={enrolling}
                         >
-                          <span>Enroll Now</span>
-                          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                          <span>{enrolling ? "Enrolling..." : "Enroll Now"}</span>
+                          {enrolling ? (
+                            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          ) : (
+                            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                          )}
                         </button>
                       )}
                       <button className="p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors duration-300">
@@ -666,7 +553,7 @@ const CoursesPage = () => {
           </>
         )}
 
-        {/* My Courses Tab */}
+{/* My Courses Tab */}
         {activeTab === "my-courses" && (
           <div>
             {myEnrolledCourses.length === 0 ? (
@@ -735,13 +622,12 @@ const CoursesPage = () => {
                 {/* Enrolled Courses */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {myEnrolledCourses.map((course) => {
-                    const progress = courseProgress[course.id] || { completedLessons: 0, totalLessons: course.lessons }
-                    const progressPercentage = getProgressPercentage(course.id)
+                    const progress = courseProgress[course._id] || { completedLessons: 0, totalLessons: course.lessons }
+                    const progressPercentage = getProgressPercentage(course._id)
                     const isCompleted = progress.completedLessons === progress.totalLessons
-
                     return (
                       <div
-                        key={course.id}
+                        key={course._id}
                         className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden hover:shadow-xl transition-all duration-300"
                       >
                         <div className="flex">
@@ -767,7 +653,7 @@ const CoursesPage = () => {
                                 <p className="text-sm text-gray-600">By {course.instructor}</p>
                               </div>
                               <button
-                                onClick={() => unenrollFromCourse(course.id)}
+                                onClick={() => unenrollFromCourse(course._id)}
                                 className="p-1 text-gray-400 hover:text-red-500 transition-colors duration-300"
                               >
                                 <X className="w-4 h-4" />
@@ -788,58 +674,19 @@ const CoursesPage = () => {
                                   style={{ width: `${progressPercentage}%` }}
                                 ></div>
                               </div>
-                              <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
-                                <span>
-                                  {progress.completedLessons} of {progress.totalLessons} lessons
-                                </span>
-                                <span>Enrolled: {new Date(progress.enrolledDate).toLocaleDateString()}</span>
+                              <div className="flex items-center space-x-2 text-sm text-gray-500 mt-2">
+                                <span>{progress.completedLessons} / {progress.totalLessons} Lessons Completed</span>
                               </div>
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex gap-3">
-                              {isCompleted ? (
-                                <button className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors duration-300 font-medium flex items-center justify-center gap-2">
-                                  <Award className="w-4 h-4" />
-                                  <span>View Certificate</span>
-                                </button>
-                              ) : (
-                                <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-300 font-medium flex items-center justify-center gap-2">
-                                  <PlayCircle className="w-4 h-4" />
-                                  <span>Continue Learning</span>
-                                </button>
-                              )}
-                              <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-300">
-                                <BarChart3 className="w-4 h-4 text-gray-600" />
+                            <div className="mt-4 flex gap-2">
+                              <button className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
+                                Go to Course
                               </button>
-                            </div>
-
-                            {/* Quick Progress Update (for demo purposes) */}
-                            <div className="mt-3 pt-3 border-t border-gray-100">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500">Quick update:</span>
-                                <button
-                                  onClick={() =>
-                                    updateCourseProgress(
-                                      course.id,
-                                      Math.min(progress.completedLessons + 1, progress.totalLessons),
-                                    )
-                                  }
-                                  disabled={isCompleted}
-                                  className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  +1 Lesson
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    updateCourseProgress(course.id, Math.max(progress.completedLessons - 1, 0))
-                                  }
-                                  disabled={progress.completedLessons === 0}
-                                  className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded hover:bg-gray-200 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  -1 Lesson
-                                </button>
-                              </div>
+                              <button onClick={() => unenrollFromCourse(course._id)} className="text-sm px-3 py-2 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors">
+                                Unenroll
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -851,32 +698,6 @@ const CoursesPage = () => {
             )}
           </div>
         )}
-
-        {/* Stats Section */}
-        <div className="mt-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold mb-2">{courses.length}+</div>
-              <div className="text-blue-100">Courses Available</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold mb-2">
-                {courses.reduce((sum, course) => sum + course.students, 0).toLocaleString()}+
-              </div>
-              <div className="text-blue-100">Students Enrolled</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold mb-2">
-                {(courses.reduce((sum, course) => sum + course.rating, 0) / courses.length).toFixed(1)}
-              </div>
-              <div className="text-blue-100">Average Rating</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold mb-2">100%</div>
-              <div className="text-blue-100">Free Courses</div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

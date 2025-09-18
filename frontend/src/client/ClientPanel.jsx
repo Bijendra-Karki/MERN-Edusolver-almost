@@ -68,6 +68,7 @@ export default function ClientPanel() {
   ])
 
   const navigate = useNavigate()
+  const [courses, setCourses] = useState([])
   const [searchParams, setSearchParams] = useSearchParams()
   const [user, setUser] = useState(null)
   const [activeTab, setActiveTab] = useState("home")
@@ -622,19 +623,17 @@ export default function ClientPanel() {
                 <button
                   key={index}
                   onClick={() => handleAnswerSelect(currentQuestion.id, index)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ${
-                    selectedAnswers[currentQuestion.id] === index
+                  className={`w-full text-left p-4 rounded-lg border-2 transition-all duration-200 ${selectedAnswers[currentQuestion.id] === index
                       ? "border-blue-500 bg-blue-50"
                       : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        selectedAnswers[currentQuestion.id] === index
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedAnswers[currentQuestion.id] === index
                           ? "border-blue-500 bg-blue-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                     >
                       {selectedAnswers[currentQuestion.id] === index && <CheckCircle className="w-4 h-4 text-white" />}
                     </div>
@@ -685,9 +684,8 @@ export default function ClientPanel() {
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-xl p-8 shadow-sm text-center">
             <div
-              className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center ${
-                testResults.passed ? "bg-green-100" : "bg-red-100"
-              }`}
+              className={`w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center ${testResults.passed ? "bg-green-100" : "bg-red-100"
+                }`}
             >
               {testResults.passed ? (
                 <Trophy className="w-10 h-10 text-green-600" />
@@ -812,20 +810,18 @@ export default function ClientPanel() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-2 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm lg:text-base whitespace-nowrap ${
-                activeTab === tab.id
+              className={`px-2 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm lg:text-base whitespace-nowrap ${activeTab === tab.id
                   ? "bg-blue-600 text-white shadow-md"
                   : "bg-white text-gray-600 hover:bg-blue-50 border border-blue-100"
-              }`}
+                }`}
             >
               <tab.icon className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
               <span className="hidden sm:inline">{tab.label}</span>
               <span className="sm:hidden">{tab.label.split(" ")[0]}</span>
               {tab.count !== undefined && (
                 <span
-                  className={`px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs ${
-                    activeTab === tab.id ? "bg-white/20" : "bg-blue-100 text-blue-600"
-                  }`}
+                  className={`px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs ${activeTab === tab.id ? "bg-white/20" : "bg-blue-100 text-blue-600"
+                    }`}
                 >
                   {tab.count}
                 </span>
@@ -1074,78 +1070,95 @@ export default function ClientPanel() {
               )
 
             case "courses":
+              // Filter enrolled courses from your main courses array
+              const myEnrolledCourses = courses.filter((course) => enrolledCourses.has(course.id));
+
               return (
                 <div className="space-y-6">
                   <div className="bg-white/90 backdrop-blur-sm border border-blue-100 rounded-xl p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-6">
                       <h2 className="text-xl font-bold text-gray-800">My Courses</h2>
                       <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm font-medium">
-                        {studentData.enrolledCourses.length} enrolled
+                        {myEnrolledCourses.length} enrolled
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {studentData.enrolledCourses.map((course) => (
-                        <div
-                          key={course.id}
-                          className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100 hover:shadow-md transition-all duration-300"
-                        >
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <h3 className="text-lg font-bold text-gray-800 mb-1">{course.name}</h3>
-                              <p className="text-sm text-gray-600 mb-2">Instructor: {course.instructor}</p>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(course.difficulty)}`}
+                      {myEnrolledCourses.map((course) => {
+                        const progressData = courseProgress[course.id] || {
+                          completedLessons: 0,
+                          totalLessons: course.lessons,
+                          lastAccessed: "N/A",
+                        };
+                        const progressPercent = Math.round(
+                          (progressData.completedLessons / progressData.totalLessons) * 100
+                        );
+
+                        return (
+                          <div
+                            key={course.id}
+                            className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-100 hover:shadow-md transition-all duration-300"
+                          >
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex-1">
+                                <h3 className="text-lg font-bold text-gray-800 mb-1">{course.title}</h3>
+                                <p className="text-sm text-gray-600 mb-2">Instructor: {course.instructor}</p>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(
+                                    course.difficulty
+                                  )}`}
+                                >
+                                  {course.difficulty}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mb-4">
+                              <div className="flex justify-between text-sm text-gray-600 mb-2">
+                                <span>Progress</span>
+                                <span>{progressPercent}%</span>
+                              </div>
+                              <div className="w-full bg-blue-200 rounded-full h-3">
+                                <div
+                                  className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                                  style={{ width: `${progressPercent}%` }}
+                                ></div>
+                              </div>
+                              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>
+                                  {progressData.completedLessons}/{progressData.totalLessons} lessons
+                                </span>
+                                <span>Last: {new Date(progressData.lastAccessed).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+
+                            <div className="mb-4 p-3 bg-white rounded-lg">
+                              <p className="text-sm text-gray-600 mb-1">Next Lesson:</p>
+                              <p className="font-semibold text-gray-800">{course.nextLesson || "Not started"}</p>
+                              <p className="text-xs text-gray-500">Est. time: {course.estimatedHours || "N/A"} hrs</p>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                                <Play className="w-4 h-4" />
+                                Continue
+                              </button>
+                              <button
+                                onClick={() => handleTestClick(course)}
+                                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1"
                               >
-                                {course.difficulty}
-                              </span>
+                                <Brain className="w-4 h-4" />
+                                Test
+                              </button>
                             </div>
                           </div>
-
-                          <div className="mb-4">
-                            <div className="flex justify-between text-sm text-gray-600 mb-2">
-                              <span>Progress</span>
-                              <span>{course.progress}%</span>
-                            </div>
-                            <div className="w-full bg-blue-200 rounded-full h-3">
-                              <div
-                                className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-                                style={{ width: `${course.progress}%` }}
-                              ></div>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-500 mt-1">
-                              <span>
-                                {course.completedLessons}/{course.totalLessons} lessons
-                              </span>
-                              <span>Last: {course.lastAccessed}</span>
-                            </div>
-                          </div>
-
-                          <div className="mb-4 p-3 bg-white rounded-lg">
-                            <p className="text-sm text-gray-600 mb-1">Next Lesson:</p>
-                            <p className="font-semibold text-gray-800">{course.nextLesson}</p>
-                            <p className="text-xs text-gray-500">Est. time: {course.estimatedTime}</p>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2">
-                              <Play className="w-4 h-4" />
-                              Continue
-                            </button>
-                            <button
-                              onClick={() => handleTestClick(course)}
-                              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium flex items-center gap-1"
-                            >
-                              <Brain className="w-4 h-4" />
-                              Test
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 </div>
               )
+
 
             case "tests":
               return (
@@ -1267,13 +1280,12 @@ export default function ClientPanel() {
                             <h3 className="text-gray-800 font-semibold text-sm sm:text-base">{assignment.title}</h3>
                             <div className="flex items-center gap-2">
                               <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  assignment.priority === "high"
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${assignment.priority === "high"
                                     ? "bg-red-100 text-red-700"
                                     : assignment.priority === "medium"
                                       ? "bg-yellow-100 text-yellow-700"
                                       : "bg-green-100 text-green-700"
-                                }`}
+                                  }`}
                               >
                                 {assignment.priority} priority
                               </span>
@@ -1470,14 +1482,7 @@ export default function ClientPanel() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header with Navbar */}
-      <Navbar
-        links={navLinks}
-        user={user}
-        panelType="client"
-        onLogout={handleLogout}
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-      />
+
 
       {/* Main Content */}
       {renderContent()}

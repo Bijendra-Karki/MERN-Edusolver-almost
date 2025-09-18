@@ -1,6 +1,7 @@
 import Enrollment from '../models/enrollmentModel.js';
 import User from '../models/userModel.js';
 import Subject from '../models/subjectModel.js';
+import crypto from 'crypto'; // import crypto for HMAC
 
 // GET all enrollments
 export const getEnrollments = async (req, res) => {
@@ -62,4 +63,20 @@ export const deleteEnrollment = async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+};
+
+// Esewa signature generation
+export const generateSignature = (req, res) => {
+  const { total_amount, transaction_uuid, product_code } = req.body;
+
+  const dataToSign = `total_amount=${total_amount},transaction_uuid=${transaction_uuid},product_code=${product_code}`;
+
+  // use secret key to create HMAC SHA256 signature
+  const secretKey = process.env.ESEWA_SECRET_KEY;
+  const signature = crypto
+    .createHmac('sha256', secretKey)
+    .update(dataToSign)
+    .digest('base64');
+
+  res.json({ signature });
 };
