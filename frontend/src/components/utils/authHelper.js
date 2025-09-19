@@ -42,9 +42,18 @@ export const authenticate = (data, next) => {
 // ============================
 export const isAuthenticated = () => {
   if (typeof window === "undefined") return false;
-  if (localStorage.getItem("jwt")) {
-    return JSON.parse(localStorage.getItem("jwt"));
-  } else {
+
+  const stored = localStorage.getItem("jwt");
+  if (!stored) return false;
+
+  try {
+    const data = JSON.parse(stored);
+    if (data.token && data.user) {
+      return data; // { token, user }
+    }
+    return false;
+  } catch (err) {
+    console.error("Failed to parse JWT:", err);
     return false;
   }
 };

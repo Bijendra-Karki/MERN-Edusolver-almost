@@ -1,14 +1,12 @@
 // src/components/Auth/AuthContainer.jsx
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import boyCharacter from "../../assets/img/boy.gif";
 import SignInForm from "./SignInForm";
 import SignUpForm from "./SignUpForm";
-import { isAuthenticated } from "../utils/authHelper";
 
 export default function AuthContainer() {
   const navigate = useNavigate();
@@ -16,33 +14,14 @@ export default function AuthContainer() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    if (isAuthenticated()) {
-      // Optional: Redirect if already authenticated
-      const user = isAuthenticated().user;
-      if (user.role === "admin") {
-        navigate("/adminPanel");
-      } else if (user.role === "expert") {
-        navigate("/expertPanel");
-      } else if (user.role === "Student") {
-        navigate("/clientPanel");
-      } else {
-        navigate("/");
-      }
-    }
-  }, [navigate]);
 
   const handleAuthSuccess = (result) => {
-    // This function will handle the redirection after successful login/signup
-    if (result.user.role === "admin") {
+    const user = result.user;
+    if (user.role === "admin") {
       navigate("/adminPanel");
-    } else if (result.user.role === "expert") {
+    } else if (user.role === "expert") {
       navigate("/expertPanel");
-    } else if (result.user.role === "Student") {
+    } else if (user.role === "student") {
       navigate("/clientPanel");
     } else {
       navigate("/");
@@ -50,43 +29,19 @@ export default function AuthContainer() {
   };
 
   const switchToSignIn = () => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setIsSignUp(false);
-      setError("");
-      setSuccess("");
-      setIsTransitioning(false);
-    }, 100);
+    setIsSignUp(false);
+    setError("");
+    setSuccess("");
   };
 
   const switchToSignUp = () => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setIsSignUp(true);
-      setError("");
-      setSuccess("");
-      setIsTransitioning(false);
-    }, 100);
+    setIsSignUp(true);
+    setError("");
+    setSuccess("");
   };
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500 to-purple-500 relative overflow-hidden">
-      {/* Demo Credentials Info */}
-      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm border border-blue-100 rounded-lg p-3 text-gray-700 text-xs shadow-sm">
-        <div className="font-semibold mb-1 text-blue-700">Demo Credentials:</div>
-        <div>Admin: admin / admin123</div>
-        <div>Expert: expert / expert123</div>
-        <div>User: user / user123</div>
-      </div>
-
       {/* Main Container */}
       <div className="flex bg-blue-100 backdrop-blur-sm border border-blue-100 rounded-2xl overflow-hidden max-w-5xl w-full relative shadow-lg transform transition-all duration-300 hover:shadow-xl md:flex hidden">
         {/* Left side with illustration */}

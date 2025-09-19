@@ -9,6 +9,7 @@ import HeaderNavbar from "./HeaderNavbar";
 import CourseOpener from "./CouserOpener";
 import ResponseOpener from "./ResponseOpener";
 import ExamOpener from "./ExamOpener";
+import { isAuthenticated } from "../components/utils/authHelper";
 
 
 
@@ -19,13 +20,10 @@ export default function AdminPanel() {
   const [user, setUser] = useState(null)
 
   useEffect(() => {
-    const userData = localStorage.getItem("user")
+    const userData = isAuthenticated() && isAuthenticated().user
     if (userData) {
-      const parsedUser = JSON.parse(userData)
-      if (parsedUser.role !== "admin") {
-        navigate("/")
-        return
-      }
+      const parsedUser = userData
+     
       setUser(parsedUser)
     } else {
       navigate("/login")

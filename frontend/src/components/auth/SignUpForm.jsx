@@ -3,7 +3,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, User, Mail, Lock, Sparkles, Phone, Book } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock, Sparkles, Phone, Book, CheckCircle } from "lucide-react";
 import { useForm, validateSignUp } from "../hooks/useForm";
 import { signup, authenticate } from "../utils/authHelper";
 
@@ -12,7 +12,7 @@ export default function SignUpForm({ onAuthSuccess, onSwitchForm, isLoading, set
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { data, errors, handleChange, handleSubmit } = useForm(
-    { fullName: "", phone: "", email: "", password: "", semester: "", confirmPassword: "" },
+    { name: "", phone: "", email: "", password: "", semester: "", confirmPassword: "" },
     validateSignUp
   );
 
@@ -39,7 +39,7 @@ export default function SignUpForm({ onAuthSuccess, onSwitchForm, isLoading, set
   };
 
   const inputFields = [
-    { name: "fullName", type: "text", placeholder: "Full Name", icon: User },
+    { name: "name", type: "text", placeholder: "Full Name", icon: User },
     { name: "email", type: "email", placeholder: "Email Address", icon: Mail },
     { name: "phone", type: "text", placeholder: "Phone Number", icon: Phone },
     { name: "semester", type: "text", placeholder: "Semester", icon: Book },

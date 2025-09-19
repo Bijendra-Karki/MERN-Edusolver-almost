@@ -33,8 +33,8 @@ export const useForm = (initialState, validate) => {
 
 export const validateSignUp = (data) => {
   const errors = {};
-  if (!data.fullName.trim()) {
-    errors.fullName = "Full name is required";
+  if (!data.name.trim()) {
+    errors.name = "Full name is required";
   }
   if (!data.email.trim()) {
     errors.email = "Email is required";
@@ -59,8 +59,8 @@ export const validateSignUp = (data) => {
 
 export const validateSignIn = (data) => {
   const errors = {};
-  if (!data.username) {
-    errors.username = "Username is required";
+  if (!data.email) {
+    errors.email = "Email is required";
   }
   if (!data.password) {
     errors.password = "Password is required";

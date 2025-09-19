@@ -3,15 +3,15 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Lock, Shield, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, Lock, Shield, ArrowLeft, CheckCircle } from "lucide-react";
 import { useForm, validateSignIn } from "../hooks/useForm";
-import { signin, authenticate } from "../utils/authHelper";
+import { signin, authenticate } from "../utils/authHelper"; // Corrected import path
 
 export default function SignInForm({ onAuthSuccess, onSwitchForm, isLoading, setIsLoading, setError, setSuccess, error, success }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const { data, errors, handleChange, handleSubmit } = useForm(
-    { username: "", password: "" },
+    { email: "", password: "" },
     validateSignIn
   );
 
@@ -24,15 +24,28 @@ export default function SignInForm({ onAuthSuccess, onSwitchForm, isLoading, set
       const result = await signin(formData);
       if (!result.error) {
         setSuccess("Login successful! Redirecting...");
-        authenticate(result, () => {
-          onAuthSuccess(result);
-        });
-      } else {
-        setError(result.error || "Signin failed. Please try again.");
-      }
-    } catch (err) {
-      setError("An unexpected error occurred.");
-    } finally {
+         // store token + user in localStorage
+      authenticate(result, () => {
+        onAuthSuccess(result);
+
+        // ✅ Redirect based on role
+        const role = result.user.role;
+        if (role === "admin") {
+          navigate("/adminPanel", { replace: true });
+        } else if (role === "expert") {
+          navigate("/expertPanel", { replace: true });
+        } else if (role === "student") {
+          navigate("/clientPanel", { replace: true });
+        } else {
+          navigate("/", { replace: false });
+        }
+      });
+    } else {
+       setError(result.error || "Signin failed. Please try again.");
+    }
+  } catch (err) {
+    setError("An unexpected error occurred.");
+  } finally {
       setIsLoading(false);
     }
   };
@@ -76,14 +89,14 @@ export default function SignInForm({ onAuthSuccess, onSwitchForm, isLoading, set
         <div className="relative group/input">
           <input
             type="text"
-            name="username"
-            placeholder="Enter username or email"
-            value={data.username}
+            name="email"
+            placeholder="Enter email"
+            value={data.email}
             onChange={handleChange}
             disabled={isLoading}
             className="w-full px-5 py-4 border-2 border-gray-200 rounded-xl text-gray-800 bg-white transition-all duration-300 outline-none text-base focus:border-blue-500 focus:ring-4 focus:ring-blue-100 placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed hover:border-gray-300"
           />
-          {errors.username && <span className="absolute left-4 bottom-[-1.5rem] text-red-500 text-xs">{errors.username}</span>}
+          {errors.email && <span className="absolute left-4 bottom-[-1.5rem] text-red-500 text-xs">{errors.email}</span>}
         </div>
 
         <div className="relative group/input">

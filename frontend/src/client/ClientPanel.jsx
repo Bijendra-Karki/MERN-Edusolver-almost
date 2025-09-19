@@ -40,6 +40,7 @@ import Footer from "../components/ToperFooter/Footer"
 import ServiceSection from "../components/service/ServiceSection"
 import ServiceHowWeWork from "../components/service/ServiceHowWeWork"
 import PricingSection from "../components/service/PricingSection"
+import { isAuthenticated } from "../components/utils/authHelper"  
 
 export default function ClientPanel() {
   const [testHistory, setTestHistory] = useState([
@@ -423,9 +424,9 @@ export default function ClientPanel() {
   }
 
   useEffect(() => {
-    const userData = localStorage.getItem("user")
+    const userData = isAuthenticated().user;
     if (userData) {
-      const parsedUser = JSON.parse(userData)
+      const parsedUser = userData;
       setUser(parsedUser)
     } else {
       navigate("/login")

@@ -22,6 +22,7 @@ import {
   MessageSquare,
   Globe,
 } from "lucide-react"
+import { isAuthenticated } from "../utils/authHelper"
 
 const Button = ({ children, className = "", onClick, ...props }) => {
   return (
@@ -412,7 +413,7 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
               </form>
             </div>
 
-            {user ? (
+            {isAuthenticated() ? (
               <>
                 {/* Notifications */}
                 <div ref={notificationsRef} className="relative">
@@ -491,8 +492,8 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
                       <User className="w-4 h-4" />
                     </div>
                     <div className="hidden xl:block text-left">
-                      <p className="text-sm font-medium truncate max-w-24">{user.name?.split(" ")[0] || "User"}</p>
-                      <p className="text-xs text-white/70 capitalize">{user.role || panelType || "Student"}</p>
+                      <p className="text-sm font-medium truncate max-w-24">{isAuthenticated().user.name?.split(" ")[0] || "User"}</p>
+                      <p className="text-xs text-white/70 capitalize">{isAuthenticated().user.role || panelType || "Student"}</p>
                     </div>
                     <ChevronDown
                       className={`w-4 h-4 transition-transform duration-200 ${isUserDropdownOpen ? "rotate-180" : ""}`}
@@ -509,10 +510,10 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
                             <User className="w-5 h-5 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-gray-900 font-medium truncate">{user.name || "User Name"}</p>
-                            <p className="text-gray-500 text-sm truncate">{user.email || "user@example.com"}</p>
+                            <p className="text-gray-900 font-medium truncate">{isAuthenticated().user.name || "User Name"}</p>
+                            <p className="text-gray-500 text-sm truncate">{isAuthenticated().user.email || "user@example.com"}</p>
                             <span className="inline-block px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full mt-1 capitalize">
-                              {user.role || panelType || "Student"}
+                              {isAuthenticated().user.role || panelType || "Student"}
                             </span>
                           </div>
                         </div>
