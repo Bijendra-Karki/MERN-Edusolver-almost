@@ -3,23 +3,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { getToken } from "../../components/utils/authHelper"; // Assuming this path is correct
+import { getToken } from "../../components/utils/authHelper";
 
-// --- Helper Components/Functions (Extracted for Clarity) ---
-
-/**
- * Creates and submits the hidden form to the eSewa gateway.
- * @param {object} formData - eSewa required data (amount, product_code, etc.).
- * @param {string} signature - The HMAC signature from the backend.
- */
+// Helper function to submit eSewa form
 const submitEsewaForm = (formData, signature) => {
-  const ESEWA_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"; // Use the correct URL
+  const ESEWA_URL = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"; // sandbox/live
+
+  if (!formData || !signature) {
+    console.error("Cannot submit: missing formData or signature");
+    return;
+  }
 
   const form = document.createElement("form");
   form.method = "POST";
   form.action = ESEWA_URL;
 
-  // Add all formData fields
   Object.keys(formData).forEach((key) => {
     const input = document.createElement("input");
     input.type = "hidden";
@@ -27,116 +25,118 @@ const submitEsewaForm = (formData, signature) => {
     input.value = formData[key];
     form.appendChild(input);
   });
-  
 
-  // Add the signature field
   const signatureInput = document.createElement("input");
   signatureInput.type = "hidden";
   signatureInput.name = "signature";
   signatureInput.value = signature;
   form.appendChild(signatureInput);
+
   document.body.appendChild(form);
-  form.submit();
+  setTimeout(() => form.submit(), 500); // allow toast to render
 };
 
-// --- Main Component ---
-
-function EsewaPaymentPage() {
+export default function EsewaPaymentPage() {
   const navigate = useNavigate();
   const token = getToken();
 
-  // 1. State for Data, Loading, and UI Feedback
   const [subjectInfo, setSubjectInfo] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Unified Toast Handler
+  // Unified toast
   const showToast = (title, description, variant = "default") => {
     setToast({ title, description, variant });
-    // Clear toast after 4 seconds
     setTimeout(() => setToast(null), 4000);
   };
 
-  // 2. Effect for Data Loading and Validation
-  useEffect(() => {
-    try {
-      const infoString = sessionStorage.getItem("currentSubjectPaymentDetails");
-      if (!infoString) {
-        throw new Error("Missing session storage data.");
-      }
-      
-      const info = JSON.parse(infoString);
+  // Load payment details from sessionStorage
+  // Load payment details from sessionStorage
+useEffect(() => {
+  try {
+    const infoString = sessionStorage.getItem("currentPaymentFormData"); // ✅ updated key
+    if (!infoString) throw new Error("Missing session storage data.");
 
-      // Validate required fields: subject_id and a positive price
-      const price = Number.parseFloat(info.price);
-      if (
-        !info.subject_id ||
-        isNaN(price) ||
-        price <= 0
-      ) {
-        throw new Error("Invalid or incomplete payment details.");
-      }
+    const info = JSON.parse(infoString);
 
-      setSubjectInfo({ ...info, price: price.toFixed(2) }); // Ensure price is clean and formatted
-    } catch (e) {
-      console.error("Payment details error:", e.message);
-      showToast("Error", "Payment details missing or invalid. Please select a course again.", "destructive");
-      setSubjectInfo(null); // Explicitly set to null to trigger error UI
-    } finally {
-      setIsLoading(false);
+    // Ensure all required fields exist
+    if (!info.subject || !info.formData || !info.signature) {
+      throw new Error("Invalid or incomplete payment details.");
     }
-  }, []); // Empty dependency array means run once on mount
 
-  // 3. Payment Submission Handler
+    const price = Number.parseFloat(info.subject.price);
+    if (isNaN(price) || price <= 0) {
+      throw new Error("Invalid price.");
+    }
+
+    setSubjectInfo({
+      subject_id: info.subject.subject_id,
+      title: info.subject.title,
+      price: price.toFixed(2),
+      formData: info.formData,
+      signature: info.signature,
+    });
+  } catch (e) {
+    console.error("Payment details error:", e.message);
+    showToast(
+      "Error",
+      "Payment details missing or invalid. Please select a course again.",
+      "destructive"
+    );
+    setSubjectInfo(null);
+  } finally {
+    setIsLoading(false);
+  }
+}, []);
+
+
+  // Payment submission handler
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Final checks before initiating
     if (!subjectInfo) {
       showToast("Error", "Cannot proceed. Missing subject details.", "destructive");
       return;
     }
-    
-    // Use the dedicated 'isSubmitting' state to manage button/UI disable
+
     setIsSubmitting(true);
     showToast("Initiating...", "Creating payment record and getting eSewa credentials.");
 
     try {
       const config = {
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       };
-     
 
       const initiationData = {
         subjectId: subjectInfo.subject_id,
-        amount: Number(subjectInfo.price), // Already cleaned in useEffect, but Number() is safe
-
+        amount: Number(subjectInfo.price),
       };
-     
 
-      // 1. Initiate Payment on the Backend
+      // Initiate payment on backend
       const { data: initiationResult } = await axios.post(
-        `/api/payments/initiate`,
+        "/api/payments/initiate",
         initiationData,
         config
       );
-      
+
       const { formData, signature } = initiationResult;
 
-      // 2. Redirect to eSewa (using the extracted helper function)
+      if (!formData || !signature) {
+        throw new Error("Backend returned incomplete payment credentials.");
+      }
+
+      // Remove sessionStorage to avoid stale data
+      sessionStorage.removeItem("currentSubjectPaymentDetails");
+
       showToast("Redirecting...", "Taking you to eSewa secure payment gateway");
       submitEsewaForm(formData, signature);
-      
-      // Note: We don't set isSubmitting(false) here because the user is redirected away immediately.
-
     } catch (err) {
       console.error("eSewa Initiation Error:", err.response?.data || err.message);
-      setIsSubmitting(false); // Enable the button again on failure
-      // Display the specific error message from the backend if available
+      setIsSubmitting(false);
       showToast(
         "Payment Failed",
         err.response?.data?.message || "Something went wrong. Please try again.",
@@ -145,7 +145,6 @@ function EsewaPaymentPage() {
     }
   };
 
-  // 4. Conditional Rendering (Early Exits)
   const isProcessing = isLoading || isSubmitting;
 
   if (isLoading) {
@@ -162,19 +161,14 @@ function EsewaPaymentPage() {
         <p className="text-red-500 font-semibold">
           Error: Invalid or missing course payment details.
         </p>
-        {/* Toast will show the user a friendly message */}
       </div>
     );
   }
 
-  // 5. Main Render
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-blue-100/30 to-blue-50 flex items-center justify-center p-4">
-      {/* ... (Rest of the presentational code remains the same) ... */}
       <div className="w-full max-w-md">
-        {/* Card Container */}
         <div className="bg-white rounded-2xl shadow-xl border border-blue-100/50 overflow-hidden">
-          {/* Card Header */}
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
@@ -194,10 +188,8 @@ function EsewaPaymentPage() {
             </div>
           </div>
 
-          {/* Card Content */}
           <div className="p-6">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Amount Input */}
               <div className="space-y-2">
                 <label htmlFor="amount" className="block text-sm font-semibold text-gray-700">
                   Total Amount (Fixed)
@@ -216,16 +208,17 @@ function EsewaPaymentPage() {
                 </div>
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
-                id='pay-btn' // Kept for styling, but not used for JS DOM manipulation anymore
-                disabled={isProcessing} // Use the combined state
+                disabled={isProcessing}
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3.5 px-6 rounded-xl transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isProcessing ? (
                   <>
-                    <svg className="animate-spin w-5 h-5 mr-3 text-white" viewBox="0 0 24 24">...</svg>
+                    <svg className="animate-spin w-5 h-5 mr-3 text-white" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                     Processing...
                   </>
                 ) : (
@@ -242,8 +235,7 @@ function EsewaPaymentPage() {
                   </>
                 )}
               </button>
-              
-              {/* Security Badge */}
+
               <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -257,7 +249,6 @@ function EsewaPaymentPage() {
               </div>
             </form>
 
-            {/* Info Alert */}
             <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-xl flex gap-3">
               <svg
                 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
@@ -280,8 +271,7 @@ function EsewaPaymentPage() {
         </div>
       </div>
 
-      {/* Toast Notification (Assuming the provided Toast logic is complete) */}
-      {/* ... (The existing toast rendering logic is fine) ... */}
+      {/* Toast */}
       {toast && (
         <div className="fixed bottom-4 right-4 z-50 animate-in slide-in-from-bottom-5">
           <div
@@ -297,21 +287,11 @@ function EsewaPaymentPage() {
               >
                 {toast.variant === "destructive" ? (
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 ) : (
                   <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M5 13l4 4L19 7"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 )}
               </div>
@@ -334,5 +314,3 @@ function EsewaPaymentPage() {
     </div>
   );
 }
-
-export default EsewaPaymentPage;

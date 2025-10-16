@@ -151,56 +151,72 @@ const CoursesPage = () => {
 
  // CoursesPage.jsx - Inside handelEnroll function
 
+// CoursesPage.jsx (Updated handelEnroll)
 const handelEnroll = async (subjectId) => {
-    setEnrolling(true);
-    const token = getToken();
+  setEnrolling(true);
+  const token = getToken();
 
-    if (!token) {
-        alert("Authentication required. Please log in.");
-        setEnrolling(false);
-        navigate('/login');
-        return;
+  if (!token) {
+    alert("Authentication required. Please log in.");
+    setEnrolling(false);
+    navigate("/login");
+    return;
+  }
+
+  try {
+    // 1️⃣ Fetch subject details from backend
+    const { data: backendSubject } = await axios.get(
+      `/api/subjects/subjectsDetails/${subjectId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (!backendSubject || !backendSubject._id || !backendSubject.price) {
+      throw new Error("Invalid subject details received from server.");
     }
 
-    try {
-        // 1. Make the API call to get subject details
-        const response = await axios.get(
-            `/api/subjects/subjectsDetails/${subjectId}`, 
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            }
-        );
+    // 2️⃣ Prepare subject details safely
+    const subjectPaymentDetails = {
+      subject_id: backendSubject._id,
+      price: parseFloat(backendSubject.price).toFixed(2), // ensure 2 decimals
+      title: backendSubject.title,
+    };
 
-        const backendSubjectDetails = response.data;
+    // 3️⃣ Initiate payment on backend
+    const { data: paymentInitiation } = await axios.post(
+      "/api/payments/initiate",
+      { subjectId: subjectPaymentDetails.subject_id, amount: subjectPaymentDetails.price },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
 
-        // 🎯 FIX: Map the _id to subject_id for the payment page
-        const subjectPaymentDetails = {
-            // Use the _id from the backend, which is what the subject details are
-            subject_id: backendSubjectDetails._id, // This key is crucial for the payment page
-            price: backendSubjectDetails.price,
-            title: backendSubjectDetails.title, // Add other necessary fields
-            // ... include any other details needed for the payment page logic
-        };
-
-        // 2. Store the **mapped** subject details in SESSION STORAGE
-        console.log("Saving to Session Storage:", subjectPaymentDetails); // 💡 Add this log for verification
-        sessionStorage.setItem("currentSubjectPaymentDetails", JSON.stringify(subjectPaymentDetails));
-
-        // 3. Navigate to the Payment page
-        navigate('/esewa-payment');
-      //  navigate('/pay');
-
-
-    } catch (error) {
-        console.error("Enrollment setup failed:", error.response?.data?.message || error.message);
-        alert(`Failed to start enrollment: ${error.response?.data?.message || "Check console for details."}`);
-        
-    } finally {
-        setEnrolling(false);
+    if (!paymentInitiation || !paymentInitiation.formData || !paymentInitiation.signature) {
+      throw new Error("Payment initiation failed. Please try again.");
     }
-}
+
+    // 4️⃣ Store payment form data for the eSewa page
+    sessionStorage.setItem(
+      "currentPaymentFormData",
+      JSON.stringify({
+        subject: subjectPaymentDetails,
+        formData: paymentInitiation.formData,
+        signature: paymentInitiation.signature,
+      })
+    );
+
+    console.log("Payment initiation successful:", subjectPaymentDetails);
+
+    // 5️⃣ Navigate to eSewa payment page
+    navigate("/esewa-payment");
+  } catch (error) {
+    console.error("Enrollment setup failed:", error.response?.data?.message || error.message);
+    alert(
+      `Failed to start enrollment: ${error.response?.data?.message || error.message}`
+    );
+  } finally {
+    setEnrolling(false);
+  }
+};
+
+
   const getLevelColor = (level) => {
     switch (level) {
       case "Beginner":
