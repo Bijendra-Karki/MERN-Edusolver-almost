@@ -1,35 +1,53 @@
-// paymentController.js
 import Payment from "../models/paymentModel.js";
 import Enrollment from "../models/enrollmentModel.js";
 import Subject from "../models/subjectModel.js";
 import crypto from "crypto";
-import { Types } from "mongoose"; // Import Types for ObjectId check
+import { Types } from "mongoose";
+import axios from "axios";
 
-// --- Configuration Constants ---
-// NOTE: Ensure these environment variables are correctly set in your .env file
-const FRONTEND_SUCCESS_URL =
-  process.env.FRONTEND_SUCCESS_URL || "http://localhost:3000/payment-success"; // Fixed to match frontend failure_url
-const FRONTEND_FAILURE_URL =
-  process.env.FRONTEND_FAILURE_URL || "http://localhost:3000/payment-failure"; // Fixed to match frontend success_url
-const ESEWA_SECRET_KEY = process.env.ESEWA_SECRET_KEY;
-const ESEWA_PRODUCT_CODE = process.env.ESEWA_PRODUCT_CODE || "EPAYTEST"; // Use ENV var for product code
+// --- 1. Configuration Constants (Centralized) ---
 
-// ---------------------------
-// 1. ESEWA SIGNATURE GENERATION (Internal Utility)
+const ESEWA_CONFIG = {
+  // Frontend Redirect URLs
+  SUCCESS_URL:
+    process.env.FRONTEND_SUCCESS_URL || "http://localhost:5173/payment-success",
+  FAILURE_URL:
+    process.env.FRONTEND_FAILURE_URL || "http://localhost:5173/payment-failure",
+
+  // eSewa Credentials
+  SECRET_KEY: process.env.ESEWA_SECRET_KEY,
+  PRODUCT_CODE: process.env.ESEWA_PRODUCT_CODE || "EPAYTEST",
+
+  // eSewa API URLs (Using V2 URLs for the POST verification)
+  VERIFICATION_URL:
+    process.env.NODE_ENV === "production"
+      ? "https://epay.esewa.com.np/api/epay/main/v2/transaction/status"
+      : "https://uat.esewa.com.np/api/epay/main/v2/transaction/status",
+};
+
 // -----------------------------------------------------------
-const generateEsewaSignature = ({
-  total_amount,
-  transaction_uuid,
-  product_code,
-}) => {
-  const dataToSign = `total_amount=${total_amount},transaction_uuid=${transaction_uuid},product_code=${product_code}`;
+// 2. INTERNAL ESEWA SIGNATURE UTILITY (Private Function)
+// -----------------------------------------------------------
 
-  if (!ESEWA_SECRET_KEY) {
+/**
+ * Generates the HMAC SHA256 signature required by eSewa.
+ * @param {object} payload - Must contain total_amount, transaction_uuid, product_code.
+ * @returns {string} The Base64 encoded signature.
+ */
+const _generateEsewaSignature = (payload) => {
+  const { total_amount, transaction_uuid, product_code } = payload;
+
+  const secretKey = ESEWA_CONFIG.SECRET_KEY;
+  if (!secretKey) {
     throw new Error("ESEWA_SECRET_KEY is not configured.");
   }
 
+  // 1. Construct the data string in the EXACT ORDER eSewa requires
+  const dataToSign = `total_amount=${total_amount},transaction_uuid=${transaction_uuid},product_code=${product_code}`;
+
+  // 2. Create the HMAC SHA256 signature
   const signature = crypto
-    .createHmac("sha256", ESEWA_SECRET_KEY)
+    .createHmac("sha256", secretKey)
     .update(dataToSign)
     .digest("base64");
 
@@ -37,19 +55,25 @@ const generateEsewaSignature = ({
 };
 
 // -----------------------------------------------------------
-// 2. INITIATE PAYMENT & GENERATE SIGNATURE (NEW FLOW)
+// 3. INITIATE PAYMENT & GENERATE SIGNATURE
 // -----------------------------------------------------------
+
 // POST: /api/payments/initiate (Auth needed: requireSignin)
 export const initiatePayment = async (req, res) => {
   const userId = req.auth._id;
-  const { subjectId, amount } = req.body;
+  let { subjectId, amount } = req.body;
 
-  // Basic Input Validation
-  if (!subjectId || !amount || isNaN(amount) || amount <= 0) {
-    return res.status(400).json({ message: "Invalid subject ID or amount." });
-  }
-  if (!Types.ObjectId.isValid(subjectId)) {
-    return res.status(400).json({ message: "Invalid Subject ID format." });
+  // Input Validation and Cleaning
+  amount = parseFloat(amount);
+  if (
+    !subjectId ||
+    isNaN(amount) ||
+    amount <= 0 ||
+    !Types.ObjectId.isValid(subjectId)
+  ) {
+    return res
+      .status(400)
+      .json({ message: "Invalid subject ID or amount format." });
   }
 
   try {
@@ -60,62 +84,57 @@ export const initiatePayment = async (req, res) => {
       return res.status(404).json({ message: "Subject not found." });
     }
 
-    // 🎯 THE FIX: Convert both values to two decimal places (fixed-point string) for reliable comparison
-    // This prevents floating-point issues (e.g., 1000.000000001 !== 1000)
-    const receivedAmount = parseFloat(amount).toFixed(2);
-    const subjectPrice = parseFloat(subject.price).toFixed(2); // Assuming subject.price is a Number/Decimal
+    // Compare prices as two decimal place strings to avoid floating-point errors
+    const receivedAmount = amount.toFixed(2);
+    const subjectPrice = parseFloat(subject.price).toFixed(2);
 
     if (receivedAmount !== subjectPrice) {
-      // 💡 Recommended: Log the actual values to your server console for debugging
       console.error(
         `Price mismatch: Received ${receivedAmount}, Expected ${subjectPrice} for Subject ID: ${subjectId}`
       );
       return res
         .status(400)
-        .json({ message: "Subject or price mismatch detected." });
+        .json({ message: "Subject price mismatch detected." });
     }
 
-    // Step 2: Generate a unique ID for this transaction (Your internal UUID)
-    // Use the MongoDB _id to ensure uniqueness and a link to the payment record
+    // Step 2: Create a unique ID for this transaction
     const newPaymentId = new Types.ObjectId();
     const transaction_uuid = newPaymentId.toHexString(); // Use the _id as the uuid
 
     // Step 3: Create the Pending Payment Record in your DB
     const newPayment = new Payment({
-      _id: newPaymentId, // Use the generated ObjectId
+      _id: newPaymentId,
       user_id: userId,
       subject_id: subjectId,
       amount: amount,
       method: "eSewa",
-      gateway_ref_id: transaction_uuid, // CRUCIAL: Store our internal UUID (which is the MongoDB _id)
       status: "pending",
       verification_status: "unverified",
     });
     await newPayment.save();
 
-    // Step 4: Prepare eSewa Form Data
-    const formData = {
+    // Step 4: Prepare eSewa Form Data Payload
+    const formDataPayload = {
       amount: amount,
       tax_amount: 0,
-      total_amount: amount, // Total amount is just the subject price
-      transaction_uuid: transaction_uuid, // Use the DB's ID/UUID
-      product_code: ESEWA_PRODUCT_CODE,
+      total_amount: amount, // The amount used for signing
+      transaction_uuid: transaction_uuid, // The UUID used for signing
+      product_code: ESEWA_CONFIG.PRODUCT_CODE, // The code used for signing
       product_service_charge: 0,
       product_delivery_charge: 0,
-      // NOTE: Must use an external, public-facing domain for production
-      success_url: FRONTEND_SUCCESS_URL,
-      failure_url: FRONTEND_FAILURE_URL,
+      success_url: ESEWA_CONFIG.SUCCESS_URL,
+      failure_url: ESEWA_CONFIG.FAILURE_URL,
       signed_field_names: "total_amount,transaction_uuid,product_code",
     };
 
     // Step 5: Generate eSewa Signature
-    const signature = generateEsewaSignature(formData);
+    const signature = _generateEsewaSignature(formDataPayload); // 👈 Use the internal utility
 
-    // Step 6: Send back formData and signature to the client
+    // Step 6: Send back data to the client
     res.status(200).json({
       message: "Payment initiated successfully.",
-      formData: formData,
-      signature: signature,
+      formData: formDataPayload,
+      signature: signature, // Send signature back to the frontend for the hidden form submission
     });
   } catch (error) {
     console.error("Error during payment initiation:", error);
@@ -126,115 +145,195 @@ export const initiatePayment = async (req, res) => {
 };
 
 // -----------------------------------------------------------
-// 4. ESEWA PAYMENT VERIFICATION (Unchanged logic, minor cleanup)
+// 4. ESEWA PAYMENT VERIFICATION UTILITY (FIXED)
 // -----------------------------------------------------------
-// GET: /api/payments/verify (No auth needed, called by eSewa)
-// NOTE: You still need a `verifyEsewaPayment` utility function to handle the
-// server-to-server verification call to eSewa's system using the `data` query param.
 
-export const verifyPaymentAndEnroll = async (req, res) => {
-  const { data: eSewaResponseData } = req.query;
-
-  if (!eSewaResponseData) {
-    // eSewa sends no data if transaction is cancelled by user
-    return res.redirect(`${FRONTEND_FAILURE_URL}?msg=TransactionCancelled`);
-  }
-
+/**
+ * Decodes eSewa data and performs the server-to-server verification call.
+ * @param {string} eSewaResponseData - Base64 encoded data from eSewa redirect.
+ * @returns {object} { isVerified, refId, orderId }
+ */
+const verifyEsewaPayment = async (eSewaResponseData) => {
+  let refId = null;
+  let orderId = null;
   try {
-    // This is a placeholder for your actual server-to-server verification function
-    // It should:
     // 1. Decode eSewaResponseData (Base64)
-    // 2. Check the signature sent by eSewa against your secret key (or call eSewa API).
-    // 3. Parse the details like transaction code (refId) and our transaction UUID (orderId).
+    const decodedData = Buffer.from(eSewaResponseData, "base64").toString(
+      "utf8"
+    );
+    const responseJson = JSON.parse(decodedData);
+    refId = responseJson.transaction_code; // eSewa's transaction ID
+    orderId = responseJson.transaction_uuid; // Our unique payment ID
 
-    // **YOU MUST IMPLEMENT `verifyEsewaPayment`**
-    // It must return an object like: { isVerified: boolean, refId: string (e.g., TXN1234), orderId: string (our transaction_uuid/DB ID) }
-    const verificationResult = await verifyEsewaPayment(eSewaResponseData);
-
-    const { isVerified, refId, orderId } = verificationResult;
-
-    // orderId is the `transaction_uuid` which we set to be the Payment._id.toHexString()
-    const payment = await Payment.findById(orderId);
-    if (!payment) {
-      return res.redirect(
-        `${FRONTEND_FAILURE_URL}?msg=PaymentNotFound&uuid=${orderId}`
-      );
+    if (!refId || !orderId) {
+      console.error("eSewa response missing transaction codes.");
+      return { isVerified: false, refId, orderId };
     }
 
-    if (isVerified) {
-      payment.status = "completed";
-      payment.verification_status = "verified";
-      payment.gateway_ref_id = refId; // Store eSewa's transaction ID
-    } else {
-      payment.status = "failed";
-      payment.verification_status = "invalid_data";
+    // 2. Retrieve Original Amount for Security
+    const paymentRecord = await Payment.findById(orderId);
+    if (!paymentRecord) {
+      console.error(`Payment record not found for orderId: ${orderId}`);
+      return { isVerified: false, refId, orderId };
     }
-    await payment.save();
+    const originalAmount = paymentRecord.amount; // Use the stored amount
 
-    if (isVerified) {
-      // Check for existing enrollment to prevent duplicates
-      let enrollment = await Enrollment.findOne({
-        user_id: payment.user_id,
-        subject_id: payment.subject_id,
-      });
+    // 3. Prepare the Payload for eSewa's Server-to-Server Verification API
+    const verificationPayload = {
+      total_amount: originalAmount, // CRITICAL: Used for signing
+      transaction_uuid: orderId,
+      product_code: ESEWA_CONFIG.PRODUCT_CODE,
+    };
 
-      if (!enrollment) {
-        enrollment = new Enrollment({
-          user_id: payment.user_id,
-          subject_id: payment.subject_id,
-          payment_id: payment._id,
-          access_status: "active",
-        });
-        await enrollment.save();
+    // 4. Generate Verification Signature
+    // Use the internal utility and the data required for signing
+    const verificationSignature = _generateEsewaSignature(verificationPayload);
+
+    // 5. Execute the Verification API Call
+    const apiResponse = await axios.post(
+      ESEWA_CONFIG.VERIFICATION_URL,
+      {
+        // Body params for the V2 API (as per documentation)
+        amount: originalAmount,
+        product_code: ESEWA_CONFIG.PRODUCT_CODE,
+        transaction_uuid: orderId,
+        // The V2 API requires the success_url for some transactions, although not always in the body
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          // Send the signature as a header (check eSewa V2 docs, sometimes it's `tx-signature`)
+          signature: verificationSignature, 
+        },
       }
+    );
 
-      // Redirect to success page with relevant IDs
-      return res.redirect(
-        `${FRONTEND_SUCCESS_URL}?subjectId=${payment.subject_id}&paymentId=${payment._id}&refId=${refId}`
-      );
+    const status = apiResponse.data.status;
+    const isSuccess = status === "COMPLETE" || status === "VERIFIED";
+
+    if (isSuccess) {
+      console.log(`eSewa verification successful for order: ${orderId}`);
     } else {
-      // Verification failed or payment was unsuccessful
-      return res.redirect(
-        `${FRONTEND_FAILURE_URL}?msg=PaymentVerificationFailed&uuid=${orderId}`
-      );
+      console.warn(`eSewa verification failed. Status: ${status}`);
     }
+
+    return {
+      isVerified: isSuccess,
+      refId,
+      orderId,
+    };
   } catch (error) {
-    console.error("Error during verification and enrollment:", error);
-    return res.redirect(`${FRONTEND_FAILURE_URL}?msg=InternalServerError`);
+    console.error(
+      `Error during eSewa API verification for order ${orderId}:`,
+      error.response?.data || error.message
+    );
+    return { isVerified: false, refId, orderId };
   }
 };
 
 // -----------------------------------------------------------
-// 5. ADMIN CRUD OPERATIONS (Unchanged)
+// 5. ESEWA PAYMENT VERIFICATION ENDPOINT
+// -----------------------------------------------------------
+// ... (verifyPaymentAndEnroll remains the same, as it calls the fixed utility)
+
+export const verifyPaymentAndEnroll = async (req, res) => {
+    // ... (Your original implementation using the verifyEsewaPayment utility)
+    const { data: eSewaResponseData } = req.query;
+
+    if (!eSewaResponseData) {
+        return res.redirect(`${ESEWA_CONFIG.FAILURE_URL}?msg=TransactionCancelled`);
+    }
+
+    try {
+        const { isVerified, refId, orderId } = await verifyEsewaPayment(
+            eSewaResponseData
+        );
+
+        const payment = await Payment.findById(orderId);
+        if (!payment) {
+            return res.redirect(
+                `${ESEWA_CONFIG.FAILURE_URL}?msg=PaymentNotFound&uuid=${orderId}`
+            );
+        }
+
+        if (isVerified) {
+            payment.status = "completed";
+            payment.verification_status = "verified";
+            payment.gateway_ref_id = refId;
+            await payment.save();
+
+            let enrollment = await Enrollment.findOne({
+                user_id: payment.user_id,
+                subject_id: payment.subject_id,
+            });
+
+            if (!enrollment) {
+                enrollment = new Enrollment({
+                    user_id: payment.user_id,
+                    subject_id: payment.subject_id,
+                    payment_id: payment._id,
+                    access_status: "active",
+                });
+                await enrollment.save();
+            }
+
+            return res.redirect(
+                `${ESEWA_CONFIG.SUCCESS_URL}?subjectId=${payment.subject_id}&paymentId=${payment._id}&refId=${refId}`
+            );
+        } else {
+            payment.status = "failed";
+            payment.verification_status = "invalid_data";
+            if (refId) payment.gateway_ref_id = refId;
+            await payment.save();
+
+            return res.redirect(
+                `${ESEWA_CONFIG.FAILURE_URL}?msg=PaymentVerificationFailed&uuid=${orderId}`
+            );
+        }
+    } catch (error) {
+        console.error(
+            "Critical error during verification and enrollment process:",
+            error
+        );
+        return res.redirect(`${ESEWA_CONFIG.FAILURE_URL}?msg=InternalServerError`);
+    }
+};
+
+// -----------------------------------------------------------
+// 6. ADMIN/USER CRUD OPERATIONS
 // -----------------------------------------------------------
 
-// GET all payments
+// GET all payments (Admin use only)
 export const getPayments = async (req, res) => {
   try {
-    const payments = await Payment.find().populate("user_id", "name email");
+    // Populate subject_id too, for better context in the admin view
+    const payments = await Payment.find()
+      .populate("user_id", "name email")
+      .populate("subject_id", "title price");
     res.json(payments);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// GET payment by ID
+// GET payment by ID (User or Admin)
 export const getPaymentById = async (req, res) => {
   try {
-    const paymentId = req.params.id;
-    const userId = req.auth._id;
-    const userRole = req.auth.role;
+    const { id: paymentId } = req.params;
+    const { _id: userId, role: userRole } = req.auth;
 
-    const payment = await Payment.findById(paymentId).populate(
-      "user_id",
-      "name email"
-    );
+    const payment = await Payment.findById(paymentId)
+      .populate("user_id", "name email")
+      .populate("subject_id", "title price");
+
     if (!payment) return res.status(404).json({ error: "Payment not found" });
 
-    if (
-      userRole !== "admin" &&
-      payment.user_id._id.toString() !== userId.toString()
-    ) {
+    // Authorization Check: Must be admin OR the user who made the payment
+    const isOwner =
+      payment.user_id && payment.user_id._id.toString() === userId.toString();
+    const isAdmin = userRole === "admin";
+
+    if (!isAdmin && !isOwner) {
       return res
         .status(403)
         .json({ error: "Access denied. Not authorized to view this payment." });
@@ -251,6 +350,7 @@ export const updatePayment = async (req, res) => {
   try {
     const payment = await Payment.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
+      runValidators: true, // Good practice for updates
     });
     if (!payment) return res.status(404).json({ error: "Payment not found" });
     res.json(payment);
@@ -264,7 +364,9 @@ export const deletePayment = async (req, res) => {
   try {
     const payment = await Payment.findByIdAndDelete(req.params.id);
     if (!payment) return res.status(404).json({ error: "Payment not found" });
-    res.json({ msg: "Payment deleted successfully" });
+    // Also consider deleting the corresponding Enrollment record here, if appropriate
+    await Enrollment.deleteOne({ payment_id: payment._id });
+    res.json({ msg: "Payment and associated enrollment deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

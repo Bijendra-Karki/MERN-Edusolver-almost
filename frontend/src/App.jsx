@@ -30,6 +30,13 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import StudentTable from "./Admin/forms/StudentTable";
 import TeacherTable from "./Admin/forms/TeacherTable";
 import EsewaPaymentPage from "./client/Components/EsewaPaymentPage";
+import PaymentSucces from "./client/Components/PaymentSucces";
+import PaymentFailure from "./client/Components/PaymentFailure";
+
+
+
+import EsewaPayment from "./client/Components/EsewaPayment";
+
 
 function AppContent() {
   const location = useLocation();
@@ -91,6 +98,7 @@ function AppContent() {
             element={
               <ProtectedRoute requiredRole="student">
                 <ClientPanel />
+
               </ProtectedRoute>
             }
           />
@@ -124,7 +132,17 @@ function AppContent() {
           <Route path="/CourseAddpage" element={<CourseAddpage />} />
           <Route path="/ResponseAddpage" element={<Responsepage />} />
           <Route path="/Exampage" element={<Exampage />} />
-          <Route path="/Payment" element={<EsewaPaymentPage/>} />
+          <Route path='esewa-payment' element={<EsewaPaymentPage />} />
+          <Route path='payment-success' element={<PaymentSucces />} />
+          <Route path='payment-failure' element={<PaymentFailure />} />
+
+
+
+          {/* test */}
+          <Route path='pay' element={<EsewaPayment/>} />
+
+
+
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </div>

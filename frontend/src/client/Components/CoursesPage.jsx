@@ -189,7 +189,9 @@ const handelEnroll = async (subjectId) => {
         sessionStorage.setItem("currentSubjectPaymentDetails", JSON.stringify(subjectPaymentDetails));
 
         // 3. Navigate to the Payment page
-        navigate('/Payment');
+        navigate('/esewa-payment');
+      //  navigate('/pay');
+
 
     } catch (error) {
         console.error("Enrollment setup failed:", error.response?.data?.message || error.message);
