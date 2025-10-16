@@ -147,7 +147,7 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
     setIsUserDropdownOpen(false)
   }
 
-  
+
 
   const handleLogout = () => {
     if (onLogout) {
@@ -367,11 +367,10 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
                   key={link.path}
                   to={getNavigationPath(link.path)}
                   onClick={() => handleNavLinkClick(link.path)}
-                  className={`group flex items-center gap-2 px-3 xl:px-4 py-2 rounded-lg transition-all duration-200 text-sm xl:text-base font-medium ${
-                    isActive
+                  className={`group flex items-center gap-2 px-3 xl:px-4 py-2 rounded-lg transition-all duration-200 text-sm xl:text-base font-medium ${isActive
                       ? "bg-white/20 text-white shadow-lg ring-2 ring-white/30"
                       : "text-white/90 hover:text-white hover:bg-white/10"
-                  }`}
+                    }`}
                 >
                   {getNavIcon(link.path)}
                   <span className="group-hover:translate-x-0.5 transition-transform duration-200">{link.label}</span>
@@ -387,9 +386,8 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
             <div ref={searchRef} className="relative">
               <form onSubmit={handleSearch} className="relative">
                 <div
-                  className={`flex items-center bg-white/10 backdrop-blur-sm rounded-lg transition-all duration-300 ${
-                    isSearchFocused ? "bg-white/20 ring-2 ring-white/30" : "hover:bg-white/15"
-                  }`}
+                  className={`flex items-center bg-white/10 backdrop-blur-sm rounded-lg transition-all duration-300 ${isSearchFocused ? "bg-white/20 ring-2 ring-white/30" : "hover:bg-white/15"
+                    }`}
                 >
                   <Search className="w-4 h-4 text-white/70 ml-3" />
                   <input
@@ -455,17 +453,15 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
                             <div
                               key={notification.id}
                               onClick={() => markNotificationAsRead(notification.id)}
-                              className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors border-l-4 ${
-                                notification.read ? "border-transparent" : "border-blue-500 bg-blue-50/50"
-                              }`}
+                              className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors border-l-4 ${notification.read ? "border-transparent" : "border-blue-500 bg-blue-50/50"
+                                }`}
                             >
                               <div className="flex items-start gap-3">
                                 {getNotificationIcon(notification.type)}
                                 <div className="flex-1 min-w-0">
                                   <p
-                                    className={`text-sm font-medium ${
-                                      notification.read ? "text-gray-600" : "text-gray-900"
-                                    }`}
+                                    className={`text-sm font-medium ${notification.read ? "text-gray-600" : "text-gray-900"
+                                      }`}
                                   >
                                     {notification.title}
                                   </p>
@@ -587,17 +583,15 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
                             <div
                               key={notification.id}
                               onClick={() => markNotificationAsRead(notification.id)}
-                              className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors border-l-4 ${
-                                notification.read ? "border-transparent" : "border-blue-500 bg-blue-50/50"
-                              }`}
+                              className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors border-l-4 ${notification.read ? "border-transparent" : "border-blue-500 bg-blue-50/50"
+                                }`}
                             >
                               <div className="flex items-start gap-3">
                                 {getNotificationIcon(notification.type)}
                                 <div className="flex-1 min-w-0">
                                   <p
-                                    className={`text-sm font-medium ${
-                                      notification.read ? "text-gray-600" : "text-gray-900"
-                                    }`}
+                                    className={`text-sm font-medium ${notification.read ? "text-gray-600" : "text-gray-900"
+                                      }`}
                                   >
                                     {notification.title}
                                   </p>
@@ -680,9 +674,8 @@ function Navbar({ links = [], user = null, panelType = null, onLogout = null, ac
                     key={link.path}
                     to={getNavigationPath(link.path)}
                     onClick={() => handleNavLinkClick(link.path)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-medium ${
-                      isActive ? "bg-white/20 text-white shadow-lg" : "text-white/90 hover:text-white hover:bg-white/10"
-                    }`}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 font-medium ${isActive ? "bg-white/20 text-white shadow-lg" : "text-white/90 hover:text-white hover:bg-white/10"
+                      }`}
                   >
                     {getNavIcon(link.path)}
                     {link.label}

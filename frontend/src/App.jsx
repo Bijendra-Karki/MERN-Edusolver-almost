@@ -11,7 +11,7 @@ import MainAbout from "./components/about/MainAbout";
 import Service from "./components/service/Service";
 import ContactPage from "./components/Contact/ContactPage";
 import LoginPage from "./components/pages/LoginPage";
-import ExpertPanel from "./Export/ExpertPanel";
+import ExpertPanel from "./Expert/ExpertPanel";
 import ClientPanel from "./client/ClientPanel";
 import AdminPanel from "./Admin/AdminPanel";
 import CoursesPage from "./client/Components/CoursesPage";
@@ -26,8 +26,10 @@ import CourseAddpage from "./Admin/page/CourseAddpage";
 import TeacherAddpage from "./Admin/page/TeacherAddpage";
 import Responsepage from "./Admin/page/Responsepage";
 import Exampage from "./Admin/page/Exampage";
-import EsewaPaymentPage from "./client/Components/EsewaPaymentPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import StudentTable from "./Admin/forms/StudentTable";
+import TeacherTable from "./Admin/forms/TeacherTable";
+import EsewaPaymentPage from "./client/Components/EsewaPaymentPage";
 
 function AppContent() {
   const location = useLocation();
@@ -44,7 +46,7 @@ function AppContent() {
 
   // The user check and state management are now handled by ProtectedRoute.
   // We can remove the redundant user state and useEffect hook.
-  
+
   const handleLogout = () => {
     localStorage.removeItem("jwt"); // Use the correct key from authHelpers
     window.location.href = "/login";
@@ -113,11 +115,16 @@ function AppContent() {
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/study-groups" element={<StudyGroupsPage />} />
           <Route path="/feed" element={<Feed />} />
+          <Route path="/studentsList" element={<StudentTable />} />
+          <Route path="/TeacherList" element={<TeacherTable />} />
+
+
+
           <Route path="/TeacherAddpage" element={<TeacherAddpage />} />
           <Route path="/CourseAddpage" element={<CourseAddpage />} />
           <Route path="/ResponseAddpage" element={<Responsepage />} />
           <Route path="/Exampage" element={<Exampage />} />
-          <Route path="/esewa-payment" element={<EsewaPaymentPage />} />
+          <Route path="/Payment" element={<EsewaPaymentPage/>} />
           <Route path="*" element={<PageNotFound />} />
         </Routes>
       </div>

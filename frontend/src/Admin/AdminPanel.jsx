@@ -3,13 +3,11 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Users, BookOpen, BarChart3, Settings, LogOut } from "lucide-react"
-
-import ExpertsDropdown from "./ExpertsDropdown";
-import HeaderNavbar from "./HeaderNavbar";
 import CourseOpener from "./CouserOpener";
 import ResponseOpener from "./ResponseOpener";
 import ExamOpener from "./ExamOpener";
 import { isAuthenticated } from "../components/utils/authHelper";
+import UserManagement from "./components/UserManagement";
 
 
 
@@ -63,18 +61,7 @@ export default function AdminPanel() {
         {/* Admin Actions */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
           {/* user Management */}
-          <div className="bg-white/90 backdrop-blur-sm border border-blue-100 rounded-xl p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">User Management</h2>
-            <div className="space-y-3">
-              <button className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
-                View Students
-              </button>
-              <ExpertsDropdown />
-              <button className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
-                Subscription Management
-              </button>
-            </div>
-          </div>
+          <UserManagement />
           {/* user Exam */}
           <div className="bg-white/90 backdrop-blur-sm border border-blue-100 rounded-xl p-6 shadow-sm">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Exam Management</h2>

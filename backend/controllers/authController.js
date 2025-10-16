@@ -21,13 +21,51 @@ const __dirname = path.dirname(__filename);
  */
 export const postUser = async (req, res) => {
     try {
-        const { name, email, password, phone, role, semester } = req.body;
+        // Destructure all fields from the request body, including the new ones
+        const {
+            name,
+            email,
+            password,
+            phone,
+            role,
+            semester,
+            specialization,
+            skills,
+            experience,
+            about,
+            payScale,
+            address,
+            availability,
+            qualification,
+            certifications
+        } = req.body;
 
+        // Validation for existing email remains
         const existingUser = await User.findOne({ email });
         if (existingUser) return res.status(400).json({ error: 'Email already exists' });
 
+        // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
-        const user = new User({ name, email, password: hashedPassword, phone, role, semester });
+
+        // Create a new User instance, including all available fields from the request body
+        const user = new User({
+            name,
+            email,
+            password: hashedPassword,
+            phone,
+            role,
+            semester,
+            specialization,
+            skills,
+            experience,
+            about,
+            payScale,
+            address,
+            availability,
+            qualification,
+            certifications,
+            isVerified: false, // Explicitly set if needed, though default is 'false'
+        });
         await user.save();
 
         // create email verification token
@@ -53,13 +91,16 @@ export const postUser = async (req, res) => {
             subject: 'Email Verification Link',
             html: emailTemplate,
             text: `verify your account:
-                 ${urldata}
+                  ${urldata}
                   `
         });
 
+        // Respond with success message and user data
         res.status(201).json({ msg: 'User registered successfully. Please verify your email.', user });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        // Handle server-side errors
+        console.error(err); // Log the error for debugging
+        res.status(500).json({ error: 'Server error during registration.', details: err.message });
     }
 };
 
@@ -86,35 +127,35 @@ export const postEmailConfirmation = async (req, res) => {
     }
 };
 
+
 /**
  * =====================
- * Sign-in
+ * Sign-in (Updated to set is_active: true)
  * =====================
  */
 export const signIn = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Find user
         const user = await User.findOne({ email });
         if (!user) return res.status(403).json({ error: 'Email not registered' });
 
-        // ✅ Check password using bcrypt
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) return res.status(400).json({ error: 'Incorrect password' });
 
-        // Check email verification
         if (!user.isVerified) return res.status(400).json({ error: 'Please verify your email first' });
 
-        // Generate JWT token
-        const token = jwt.sign({ _id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+        // ⭐ ACTION: Set user status to active and save
+        user.is_active = true;
+        await user.save();
+        // ⭐
 
-        // Set token in httpOnly cookie
+        const token = jwt.sign({ _id: user._id, role: user.role ,semester: user.semester}, process.env.JWT_SECRET, { expiresIn: '7d' });
+
         res.cookie('token', token, { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
 
-        // Return token and user info
-        const { _id, name, role } = user;
-        res.json({ token, user: { _id, name, email, role } });
+        const { _id, name, role, semester, is_active } = user;
+        res.json({ token, user: { _id, name, email, semester, role, is_active } });
 
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -206,12 +247,23 @@ export const userDetails = async (req, res) => {
  * Update a user
  * =====================
  */
+// userController.js (or wherever your controllers are defined)
+
+// Assuming 'User' model is imported here
+// import User from '../models/User.js'; 
+
 export const updateUser = async (req, res) => {
     try {
         const userId = req.params.id;
-        const { name, email, phone, semester } = req.body;
+        
+        // 1. Destructure ALL fields sent from the frontend request body
+        const { 
+            name, email, phone, semester, specialization, experience, about, payScale, address, qualification,
+            title, company, location, availability, 
+            languages, skills, certifications 
+        } = req.body;
 
-        // Ensure only the authenticated user or an admin can update
+        // Ensure only the authenticated user or an admin can update (Authorization check remains)
         if (req.auth._id !== userId && req.auth.role !== 'admin') {
             return res.status(403).json({ error: 'You are not authorized to update this profile.' });
         }
@@ -219,27 +271,54 @@ export const updateUser = async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        // Check if the new email already exists for another user
+        // Check if the new email already exists for another user (Email check remains)
         if (email && email !== user.email) {
             const existingUser = await User.findOne({ email });
             if (existingUser) {
                 return res.status(400).json({ error: 'Email is already taken by another user' });
             }
         }
-
-        user.name = name || user.name;
-        user.email = email || user.email;
-        user.phone = phone || user.phone;
         
-        // This is the corrected line to handle empty strings
+        // 2. Explicitly assign all fields, using hasOwnProperty to allow saving empty strings/arrays
+        
+        // Primary user fields
+        if (Object.prototype.hasOwnProperty.call(req.body, 'name')) user.name = name;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'email')) user.email = email;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'phone')) user.phone = phone;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'specialization')) user.specialization = specialization;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'experience')) user.experience = experience;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'about')) user.about = about;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'payScale')) user.payScale = payScale;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'address')) user.address = address;
+     
+        // if (Object.prototype.hasOwnProperty.call(req.body, 'role')) user.role = role; // Role should typically not be updated here
+       
+        // Academic fields
+        if (Object.prototype.hasOwnProperty.call(req.body, 'semester')) user.semester = semester;
+
+        // General Profile detail fields
+        if (Object.prototype.hasOwnProperty.call(req.body, 'title')) user.title = title;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'qualification')) user.qualification = qualification;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'company')) user.company = company;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'location')) user.location = location;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'availability')) user.availability = availability;
+        
+        // Array/List fields
+        if (Object.prototype.hasOwnProperty.call(req.body, 'languages')) user.languages = languages;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'skills')) user.skills = skills;
+        if (Object.prototype.hasOwnProperty.call(req.body, 'certifications')) user.certifications = certifications;
+        
+        // Other fields
         if (Object.prototype.hasOwnProperty.call(req.body, 'semester')) {
             user.semester = semester;
         }
-
+        
+        // 3. Save the updated document
         await user.save();
 
         res.json({ msg: 'User updated successfully', user });
     } catch (err) {
+        // Send a 500 error if any server/database error occurs
         res.status(500).json({ error: err.message });
     }
 };
@@ -285,10 +364,34 @@ export const requireStudent = (req, res, next) => {
 
 /**
  * =====================
- * Signout
+ * Signout (Ensures is_active is set to false)
  * =====================
  */
-export const signout = (req, res) => {
+export const signout = async (req, res) => {
+    // 🛑 CRITICAL: This relies on your router having requireSignin middleware.
+    if (req.auth && req.auth._id) {
+        try {
+            // Use findByIdAndUpdate for a direct, atomic update without fetching the whole document first.
+            await User.findByIdAndUpdate(
+                req.auth._id,
+                { is_active: false }
+                // We don't need { new: true } since we aren't returning the user data
+            );
+            
+            // Log for confirmation (optional, but good for debugging)
+            console.log(`User ID ${req.auth._id} set to inactive.`);
+
+        } catch (error) {
+            // Log the database error but proceed with clearing the cookie
+            console.error("MongoDB error during signout status update:", error);
+            // NOTE: Even if DB update fails, the user is still logged out by clearing the cookie.
+        }
+    } else {
+        // This runs if the user clears their cookie manually or the token expired
+        console.warn("Attempted signout without valid token (no req.auth found).");
+    }
+
+    // Always clear the cookie
     res.clearCookie('token');
     res.json({ msg: 'Signout success' });
 };

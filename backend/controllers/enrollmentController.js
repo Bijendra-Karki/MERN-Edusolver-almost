@@ -1,82 +1,108 @@
-import Enrollment from '../models/enrollmentModel.js';
-import User from '../models/userModel.js';
-import Subject from '../models/subjectModel.js';
-import crypto from 'crypto'; // import crypto for HMAC
+import Enrollment from "../models/enrollmentModel.js";
+import User from "../models/userModel.js";
+import Subject from "../models/subjectModel.js";
+import Payment from "../models/paymentModel.js";
+import crypto from "crypto";
 
-// GET all enrollments
+
+// NOTE: The payment flow functions (initiatePayment, verifyPaymentAndEnroll)
+// have been moved to controllers/paymentController.js for better organization.
+
+// -----------------------------------------------------------
+// ENROLLMENT CRUD CONTROLLERS
+// -----------------------------------------------------------
+
+// GET all enrollments (Admin only)
 export const getEnrollments = async (req, res) => {
-    try {
-        const enrollments = await Enrollment.find()
-            .populate('user_id', 'name email')
-            .populate('subject_id', 'title');
-        res.json(enrollments);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  // ⚠️ Access controlled by requireAdmin middleware
+  try {
+    const enrollments = await Enrollment.find()
+      .populate("user_id", "name email")
+      .populate("subject_id", "title");
+    res.json(enrollments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-// GET enrollment by ID
+// GET enrollment by ID (User/Admin access control implemented below)
 export const getEnrollmentById = async (req, res) => {
-    try {
-        const enrollment = await Enrollment.findById(req.params.id)
-            .populate('user_id', 'name email')
-            .populate('subject_id', 'title');
-        if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
-        res.json(enrollment);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+  try {
+    const enrollmentId = req.params.id;
+    const userId = req.auth._id; // ID of the currently logged-in user
+    const userRole = req.auth.role;
+
+    const enrollment = await Enrollment.findById(enrollmentId)
+      .populate("user_id", "name email")
+      .populate("subject_id", "title");
+
+    if (!enrollment)
+      return res.status(404).json({ error: "Enrollment not found" });
+
+    // Authorization Check: Must be the user who owns the enrollment or an Admin.
+    if (
+      userRole !== "admin" &&
+      enrollment.user_id._id.toString() !== userId.toString()
+    ) {
+      return res
+        .status(403)
+        .json({
+          error: "Access denied. You can only view your own enrollments.",
+        });
     }
+
+    res.json(enrollment);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-// CREATE enrollment
-export const createEnrollment = async (req, res) => {
-    try {
-        const { user_id, subject_id } = req.body;
-        const existing = await Enrollment.findOne({ user_id, subject_id });
-        if (existing) return res.status(409).json({ error: 'User already enrolled in this subject' });
+// GET enrollments for the currently logged-in user (User only)
+export const getUserEnrollments = async (req, res) => {
+  // ✅ Securely fetch the user ID from the token
+  const user_id = req.auth._id;
 
-        const enrollment = new Enrollment(req.body);
-        await enrollment.save();
-        res.status(201).json(enrollment);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  try {
+    const enrollments = await Enrollment.find({ user_id: user_id }).populate(
+      "subject_id",
+      "title description price"
+    );
+
+    res.json(enrollments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-// UPDATE enrollment
+// UPDATE enrollment (Admin only, e.g., changing access_status)
 export const updateEnrollment = async (req, res) => {
-    try {
-        const enrollment = await Enrollment.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
-        res.json(enrollment);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  // ⚠️ Access controlled by requireAdmin middleware
+  try {
+    const enrollment = await Enrollment.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+    if (!enrollment)
+      return res.status(404).json({ error: "Enrollment not found" });
+    res.json(enrollment);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-// DELETE enrollment
+// DELETE enrollment (Admin only)
 export const deleteEnrollment = async (req, res) => {
-    try {
-        const enrollment = await Enrollment.findByIdAndDelete(req.params.id);
-        if (!enrollment) return res.status(404).json({ error: 'Enrollment not found' });
-        res.json({ msg: 'Enrollment deleted successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  // ⚠️ Access controlled by requireAdmin middleware
+  try {
+    const enrollment = await Enrollment.findByIdAndDelete(req.params.id);
+    if (!enrollment)
+      return res.status(404).json({ error: "Enrollment not found" });
+    res.json({ msg: "Enrollment deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
-// Esewa signature generation
-export const generateSignature = (req, res) => {
-  const { total_amount, transaction_uuid, product_code } = req.body;
-
-  const dataToSign = `total_amount=${total_amount},transaction_uuid=${transaction_uuid},product_code=${product_code}`;
-
-  // use secret key to create HMAC SHA256 signature
-  const secretKey = process.env.ESEWA_SECRET_KEY;
-  const signature = crypto
-    .createHmac('sha256', secretKey)
-    .update(dataToSign)
-    .digest('base64');
-
-  res.json({ signature });
-};
+// NOTE: The generateSignature function is now typically located in the Payment Controller
+// or a utility file, so it is removed here.

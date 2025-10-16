@@ -183,7 +183,7 @@ const ExpertsList = () => {
     const matchesSpecialty = selectedSpecialty === "all" || expert.specialty === selectedSpecialty
     const matchesExperience =
       selectedExperience === "all" || expert.experience.includes(selectedExperience.replace("+", ""))
-      const matchesSearch =
+    const matchesSearch =
       expert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       expert.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -281,19 +281,19 @@ const ExpertsList = () => {
             {/* Details Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-3">Details</h3>
+                <h3 className="text-lg font-bold text-black mb-3">Details</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center">
                     <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                    <span>{expert.location}</span>
+                    <span className="text-black">{expert.location}</span>
                   </div>
                   <div className="flex items-center">
                     <Clock className="w-4 h-4 text-gray-400 mr-2" />
-                    <span>Available: {expert.availability}</span>
+                    <span className="text-black">Available: {expert.availability}</span>
                   </div>
                   <div className="flex items-center">
                     <BookOpen className="w-4 h-4 text-gray-400 mr-2" />
-                    <span>{expert.education}</span>
+                    <span className="text-black">{expert.education}</span>
                   </div>
                 </div>
               </div>
@@ -304,7 +304,7 @@ const ExpertsList = () => {
                   {expert.certifications.map((cert) => (
                     <div key={cert} className="flex items-center text-sm">
                       <Award className="w-4 h-4 text-yellow-500 mr-2" />
-                      <span>{cert}</span>
+                      <span className="text-black">{cert}</span>
                     </div>
                   ))}
                 </div>

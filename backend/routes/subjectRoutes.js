@@ -10,6 +10,7 @@ import {
 import upload from '../middlerwares/upload.js'; // import the single multer instance
 import { requireAdmin, requireUser } from '../controllers/authController.js';
 
+
 const router = express.Router();
 
 /* =========================
@@ -53,7 +54,7 @@ router.delete('/subjects/:id', requireUser, requireAdmin, deleteSubject);
 router.get('/subjectsList', getSubjects);
 
 // Get single subject by ID (users can view)
-router.get('/subjectsDetails/:id', getSubjectById);
+router.get('/subjectsDetails/:id', requireUser, getSubjectById);
 
 // User submits rating
 router.patch('/subjects/:id/rate', requireUser, updateRating);

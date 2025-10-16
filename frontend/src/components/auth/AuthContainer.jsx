@@ -41,12 +41,12 @@ export default function AuthContainer() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500 to-purple-500 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-500 to-purple-500">
       {/* Main Container */}
-      <div className="flex bg-blue-100 backdrop-blur-sm border border-blue-100 rounded-2xl overflow-hidden max-w-5xl w-full relative shadow-lg transform transition-all duration-300 hover:shadow-xl md:flex hidden">
-        {/* Left side with illustration */}
-        <div className="hidden md:flex flex-1 bg-gradient-to-br from-blue-300 to-indigo-100 items-center justify-center p-6 relative overflow-hidden">
-          <div className="flex items-center justify-center w-full h-full relative top-30 scale-120">
+      <div className="flex bg-blue-100 backdrop-blur-sm border border-blue-100 rounded-2xl overflow-hidden max-w-5xl w-full relative shadow-lg transform transition-all duration-300 hover:shadow-xl flex-col lg:flex-row">
+        {/* Left side with illustration — HIDDEN on mobile & tablet */}
+        <div className="hidden lg:flex flex-1 bg-gradient-to-br from-blue-300 to-indigo-100 items-center justify-center p-6 relative overflow-hidden">
+          <div className="flex items-center justify-center w-full h-full relative top-40 scale-120">
             <img
               src={boyCharacter || "/placeholder.svg?height=300&width=300"}
               alt="EduSolver Character"
@@ -56,8 +56,9 @@ export default function AuthContainer() {
           </div>
         </div>
 
-        {/* Right side with forms */}
+        {/* Right side with forms — ALWAYS VISIBLE */}
         <div className="flex-1 w-full p-6 flex flex-col relative overflow-hidden">
+          {/* Top Right Close Button */}
           <div className="flex justify-end items-center mb-4 relative z-20 flex-shrink-0">
             <button
               onClick={() => navigate("/")}
@@ -66,6 +67,8 @@ export default function AuthContainer() {
               <X size={24} />
             </button>
           </div>
+
+          {/* Form Content */}
           <div className="relative w-full flex-grow">
             {isSignUp ? (
               <SignUpForm
@@ -94,5 +97,6 @@ export default function AuthContainer() {
         </div>
       </div>
     </div>
+
   );
 }

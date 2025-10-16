@@ -2,22 +2,18 @@ import React, { useState } from "react";
 
 export default function TeacherForm() {
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    Name: "",
     email: "",
     phone: "",
+    role: "expert",
+    specialization: "",
+    experience: "",
+    about: "",
+    payScale: "",
     address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    subject: "",
-    gradeLevel: "",
-    yearsExperience: "",
-    education: "",
+    availability: "",
+    qualification: "",
     certifications: "",
-    bio: "",
-    agreeToTerms: false,
-    agreeToNewsletter: false,
   });
 
   const [errors, setErrors] = useState({});
@@ -29,27 +25,53 @@ export default function TeacherForm() {
     }
   };
 
+
+  const onSubmit = async (formData) => {
+    setIsLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const result = await signup(formData);
+      if (!result.error) {
+        setSuccess("Account created successfully!");
+        authenticate(result, () => {
+          onAuthSuccess(result);
+        });
+      } else {
+        setError(result.error || "register failed. Please try again.");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.firstName.trim())
-      newErrors.firstName = "First name is required";
-    if (!formData.lastName.trim())
-      newErrors.lastName = "Last name is required";
+    if (!formData.Name.trim())
+      newErrors.Name = "Name is required";
     if (!formData.email.trim()) newErrors.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(formData.email))
       newErrors.email = "Email is invalid";
     if (!formData.phone.trim())
       newErrors.phone = "Phone number is required";
-    if (!formData.subject) newErrors.subject = "Subject area is required";
-    if (!formData.gradeLevel) newErrors.gradeLevel = "Grade level is required";
-    if (!formData.yearsExperience)
-      newErrors.yearsExperience = "Years of experience is required";
-    if (!formData.education.trim())
-      newErrors.education = "Education background is required";
-    if (!formData.agreeToTerms)
-      newErrors.agreeToTerms = "You must agree to the terms and conditions";
+    // Password validation
 
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Confirm password is required";
+    } else if (formData.confirmPassword !== formData.password) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -108,57 +130,31 @@ export default function TeacherForm() {
               Personal Information
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* First Name */}
-              <div>
-                <label
-                  htmlFor="firstName"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  First Name *
-                </label>
-                <input
-                  id="firstName"
-                  type="text"
-                  value={formData.firstName}
-                  onChange={(e) =>
-                    handleInputChange("firstName", e.target.value)
-                  }
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.firstName ? "border-red-500" : "border-gray-300"
-                  }`}
-                  placeholder="Enter your first name"
-                />
-                {errors.firstName && (
-                  <p className="text-sm text-red-600">{errors.firstName}</p>
-                )}
-              </div>
 
-              {/* Last Name */}
-              <div>
-                <label
-                  htmlFor="lastName"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Last Name *
-                </label>
-                <input
-                  id="lastName"
-                  type="text"
-                  value={formData.lastName}
-                  onChange={(e) =>
-                    handleInputChange("lastName", e.target.value)
-                  }
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    errors.lastName ? "border-red-500" : "border-gray-300"
+            {/* First Name */}
+            <div>
+              <label
+                htmlFor="firstName"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Name *
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={formData.name}
+                onChange={(e) =>
+                  handleInputChange("name", e.target.value)
+                }
+                className={`w-full px-3 py-2 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.name ? "border-red-500" : "border-gray-300"
                   }`}
-                  placeholder="Enter your last name"
-                />
-                {errors.lastName && (
-                  <p className="text-sm text-red-600">{errors.lastName}</p>
-                )}
-              </div>
+                placeholder="Enter your name"
+              />
+              {errors.name && (
+                <p className="text-sm text-red-600">{errors.name}</p>
+              )}
             </div>
+
 
             {/* Email */}
             <div className="mt-4">
@@ -173,9 +169,8 @@ export default function TeacherForm() {
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.email ? "border-red-500" : "border-gray-300"
-                }`}
+                className={`w-full px-3 py-2 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? "border-red-500" : "border-gray-300"
+                  }`}
                 placeholder="your.email@example.com"
               />
               {errors.email && (
@@ -196,76 +191,61 @@ export default function TeacherForm() {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => handleInputChange("phone", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.phone ? "border-red-500" : "border-gray-300"
-                }`}
-                placeholder="(555) 123-4567"
+                className={`w-full px-3 py-2 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.phone ? "border-red-500" : "border-gray-300"
+                  }`}
+                placeholder="(+997) 9812345678"
               />
               {errors.phone && (
                 <p className="text-sm text-red-600">{errors.phone}</p>
               )}
             </div>
-          </div>
 
-          {/* Professional Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Professional Information
-            </h2>
 
-            {/* Subject */}
-            <div className="mb-4">
+            {/* Password */}
+            <div className="mt-4">
               <label
-                htmlFor="subject"
+                htmlFor="password"
                 className="block text-sm font-medium text-gray-700"
               >
-                Subject Area *
+                Password *
               </label>
-              <select
-                id="subject"
-                value={formData.subject}
-                onChange={(e) => handleInputChange("subject", e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                  errors.subject ? "border-red-500" : "border-gray-300"
-                }`}
-              >
-                <option value="">Select your subject area</option>
-                <option value="mathematics">Mathematics</option>
-                <option value="english">English</option>
-                <option value="science">Science</option>
-              </select>
-              {errors.subject && (
-                <p className="text-sm text-red-600">{errors.subject}</p>
+              <input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => handleInputChange("password", e.target.value)}
+                className={`w-full px-3 py-2 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password ? "border-red-500" : "border-gray-300"
+                  }`}
+                placeholder="Enter your password"
+              />
+              {errors.password && (
+                <p className="text-sm text-red-600">{errors.password}</p>
               )}
             </div>
-          </div>
 
-          {/* Terms */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center">
-              <input
-                id="agreeToTerms"
-                type="checkbox"
-                checked={formData.agreeToTerms}
-                onChange={(e) =>
-                  handleInputChange("agreeToTerms", e.target.checked)
-                }
-                className={`h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded ${
-                  errors.agreeToTerms ? "border-red-500" : ""
-                }`}
-              />
+            {/* Confirm Password */}
+            <div className="mt-4">
               <label
-                htmlFor="agreeToTerms"
-                className="ml-2 text-sm text-gray-700"
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700"
               >
-                I agree to the Terms and Conditions *
+                Confirm Password *
               </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                className={`w-full px-3 py-2 border text-black rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.confirmPassword ? "border-red-500" : "border-gray-300"
+                  }`}
+                placeholder="Re-enter your password"
+              />
+              {errors.confirmPassword && (
+                <p className="text-sm text-red-600">{errors.confirmPassword}</p>
+              )}
             </div>
-            {errors.agreeToTerms && (
-              <p className="text-sm text-red-600">{errors.agreeToTerms}</p>
-            )}
-          </div>
 
+          </div>
           {/* Submit */}
           <div className="flex justify-center">
             <button

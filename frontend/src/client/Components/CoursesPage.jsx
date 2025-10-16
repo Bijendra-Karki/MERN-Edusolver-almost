@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
+import { useNavigate } from 'react-router-dom';
 import axios from "axios"
 import {
   BookOpen,
@@ -20,9 +21,14 @@ import {
   PlayCircle,
   X,
 } from "lucide-react"
+import EnrolledCourses from "./EnrolledCourses";
+import { getToken, isAuthenticated } from "../../components/utils/authHelper";
+// const BACKEND_URL = "http://localhost:8000";//sodhne xa
 // import { isAuthenticated } from '../../components/auth/AuthContainer' // Assuming this is your auth function
 
 // API function to post a new enrollment
+
+
 const postEnrollment = async (courseId, userId, token) => {
   try {
     const config = {
@@ -31,7 +37,7 @@ const postEnrollment = async (courseId, userId, token) => {
         'Authorization': `Bearer ${token}`
       }
     };
-    const response = await axios.post(`/api/enrollment/enroll`, { courseId, userId }, config);
+    const response = await axios.post(`/api/enrollment/enrollList`, { courseId, userId }, config);
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.error || 'Failed to enroll in the course.');
@@ -50,6 +56,7 @@ const CoursesPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [enrolling, setEnrolling] = useState(false); // New loading state for enrollment
+  const navigate = useNavigate(); 
 
   // Get user info and token
   // const { user, token } = isAuthenticated();
@@ -77,14 +84,14 @@ const CoursesPage = () => {
       try {
         setLoading(true)
         const response = await axios.get("/api/subjects/subjectsList")
-        
+
         if (response.data) {
           const coursesData = response.data;
           setCourses(coursesData);
         } else {
           setCourses([]);
         }
-        
+
         setError(null)
       } catch (err) {
         console.error("Failed to fetch courses:", err)
@@ -142,82 +149,56 @@ const CoursesPage = () => {
     }
   })
 
-  const myEnrolledCourses = courses.filter((course) => enrolledCourses.has(course._id))
+ // CoursesPage.jsx - Inside handelEnroll function
 
-  const toggleFavorite = (courseId) => {
-    const newFavorites = new Set(favorites)
-    if (newFavorites.has(courseId)) {
-      newFavorites.delete(courseId)
-    } else {
-      newFavorites.add(courseId)
-    }
-    setFavorites(newFavorites)
-  }
-
-  // --- New and improved enrollInCourse function ---
-  const enrollInCourse = async (courseId) => {
-    if (!user || !token) {
-      alert("Please log in to enroll in a course.");
-      return;
-    }
-    if (enrolling) {
-      return; // Prevent multiple clicks
-    }
-
+const handelEnroll = async (subjectId) => {
     setEnrolling(true);
+    const token = getToken();
+
+    if (!token) {
+        alert("Authentication required. Please log in.");
+        setEnrolling(false);
+        navigate('/login');
+        return;
+    }
 
     try {
-      // API call to create enrollment record on the server
-      await postEnrollment(courseId, user._id, token);
+        // 1. Make the API call to get subject details
+        const response = await axios.get(
+            `/api/subjects/subjectsDetails/${subjectId}`, 
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
 
-      // If successful, update local state
-      const newEnrolledCourses = new Set(enrolledCourses);
-      newEnrolledCourses.add(courseId);
-      setEnrolledCourses(newEnrolledCourses);
+        const backendSubjectDetails = response.data;
 
-      setCourseProgress((prev) => ({
-        ...prev,
-        [courseId]: {
-          completedLessons: 0,
-          totalLessons: courses.find((c) => c._id === courseId)?.lessons || 0,
-          lastAccessed: new Date().toISOString(),
-          enrolledDate: new Date().toISOString(),
-          timeSpent: 0,
-        },
-      }));
-      alert("Successfully enrolled in the course!");
+        // 🎯 FIX: Map the _id to subject_id for the payment page
+        const subjectPaymentDetails = {
+            // Use the _id from the backend, which is what the subject details are
+            subject_id: backendSubjectDetails._id, // This key is crucial for the payment page
+            price: backendSubjectDetails.price,
+            title: backendSubjectDetails.title, // Add other necessary fields
+            // ... include any other details needed for the payment page logic
+        };
+
+        // 2. Store the **mapped** subject details in SESSION STORAGE
+        console.log("Saving to Session Storage:", subjectPaymentDetails); // 💡 Add this log for verification
+        sessionStorage.setItem("currentSubjectPaymentDetails", JSON.stringify(subjectPaymentDetails));
+
+        // 3. Navigate to the Payment page
+        navigate('/Payment');
+
     } catch (error) {
-      console.error(error);
-      alert(error.message); // Show error message to user
+        console.error("Enrollment setup failed:", error.response?.data?.message || error.message);
+        alert(`Failed to start enrollment: ${error.response?.data?.message || "Check console for details."}`);
+        
     } finally {
-      setEnrolling(false);
+        setEnrolling(false);
     }
-  };
-
-  const unenrollFromCourse = (courseId) => {
-    if (window.confirm("Are you sure you want to unenroll from this course? Your progress will be lost.")) {
-      const newEnrolledCourses = new Set(enrolledCourses)
-      newEnrolledCourses.delete(courseId)
-      setEnrolledCourses(newEnrolledCourses)
-      setCourseProgress((prev) => {
-        const newProgress = { ...prev }
-        delete newProgress[courseId]
-        return newProgress
-      })
-    }
-  }
-
-  const updateCourseProgress = (courseId, completedLessons) => {
-    setCourseProgress((prev) => ({
-      ...prev,
-      [courseId]: {
-        ...prev[courseId],
-        completedLessons,
-        lastAccessed: new Date().toISOString(),
-      },
-    }))
-  }
-
+}
   const getLevelColor = (level) => {
     switch (level) {
       case "Beginner":
@@ -269,11 +250,10 @@ const CoursesPage = () => {
           <div className="flex gap-4 border-b border-gray-200">
             <button
               onClick={() => setActiveTab("all-courses")}
-              className={`px-6 py-3 font-semibold transition-all duration-300 border-b-2 ${
-                activeTab === "all-courses"
-                  ? "text-blue-600 border-blue-600"
-                  : "text-gray-600 border-transparent hover:text-blue-600"
-              }`}
+              className={`px-6 py-3 font-semibold transition-all duration-300 border-b-2 ${activeTab === "all-courses"
+                ? "text-blue-600 border-blue-600"
+                : "text-gray-600 border-transparent hover:text-blue-600"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <BookOpen className="w-5 h-5" />
@@ -283,11 +263,10 @@ const CoursesPage = () => {
             </button>
             <button
               onClick={() => setActiveTab("my-courses")}
-              className={`px-6 py-3 font-semibold transition-all duration-300 border-b-2 ${
-                activeTab === "my-courses"
-                  ? "text-blue-600 border-blue-600"
-                  : "text-gray-600 border-transparent hover:text-blue-600"
-              }`}
+              className={`px-6 py-3 font-semibold transition-all duration-300 border-b-2 ${activeTab === "my-courses"
+                ? "text-blue-600 border-blue-600"
+                : "text-gray-600 border-transparent hover:text-blue-600"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <GraduationCap className="w-5 h-5" />
@@ -298,7 +277,7 @@ const CoursesPage = () => {
           </div>
         </div>
 
-{/* All Courses Tab */}
+        {/* All Courses Tab */}
         {activeTab === "all-courses" && (
           <>
             {/* Search and Filter Section */}
@@ -337,23 +316,20 @@ const CoursesPage = () => {
                       <button
                         key={category.id}
                         onClick={() => setSelectedCategory(category.id)}
-                        className={`flex items-center gap-2 px-4 py-3 rounded-xl whitespace-nowrap transition-all duration-300 border ${
-                          selectedCategory === category.id
-                            ? "bg-blue-600 text-white shadow-lg scale-105 border-blue-600"
-                            : "bg-white/70 text-gray-700 hover:bg-white hover:shadow-md border-gray-200"
-                        }`}
+                        className={`flex items-center gap-2 px-4 py-3 rounded-xl whitespace-nowrap transition-all duration-300 border ${selectedCategory === category.id
+                          ? "bg-blue-600 text-white shadow-lg scale-105 border-blue-600"
+                          : "bg-white/70 text-gray-700 hover:bg-white hover:shadow-md border-gray-200"
+                          }`}
                       >
                         <div
-                          className={`w-2 h-2 rounded-full ${
-                            selectedCategory === category.id ? "bg-white" : category.color
-                          }`}
+                          className={`w-2 h-2 rounded-full ${selectedCategory === category.id ? "bg-white" : category.color
+                            }`}
                         ></div>
                         <IconComponent className="w-4 h-4" />
                         <span className="font-medium">{category.name}</span>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs ${
-                            selectedCategory === category.id ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
-                          }`}
+                          className={`px-2 py-1 rounded-full text-xs ${selectedCategory === category.id ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+                            }`}
                         >
                           {category.count}
                         </span>
@@ -384,25 +360,19 @@ const CoursesPage = () => {
                   className="group bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-white/20 hover:scale-[1.02]"
                 >
                   {/* Course Image */}
+
                   <div className="relative overflow-hidden">
                     <img
-                      src={course.image || "/placeholder.svg"}
+                      src={`/${course.image}` || "/placeholder.svg"}
                       alt={course.title}
                       className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                     />
+
+                    {/* Gradient Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     {/* Overlay Actions */}
                     <div className="absolute top-4 right-4 flex gap-2">
-                      <button
-                        onClick={() => toggleFavorite(course._id)}
-                        className={`p-2 rounded-full backdrop-blur-sm transition-all duration-300 ${
-                          favorites.has(course._id)
-                            ? "bg-red-500 text-white"
-                            : "bg-white/80 text-gray-600 hover:bg-white"
-                        }`}
-                      >
-                        <Heart className={`w-4 h-4 ${favorites.has(course._id) ? "fill-current" : ""}`} />
-                      </button>
+                     
                       <button className="p-2 rounded-full bg-white/80 text-gray-600 hover:bg-white backdrop-blur-sm transition-all duration-300">
                         <Share2 className="w-4 h-4" />
                       </button>
@@ -447,7 +417,7 @@ const CoursesPage = () => {
                     {/* Instructor */}
                     <div className="flex items-center gap-3 mb-4">
                       <img
-                        src={course.instructorAvatar || "/placeholder.svg"}
+                        src={`../../../../backend/uploads/images/${course.instructorAvatar}` || "/placeholder.svg"}
                         alt={course.instructor}
                         className="w-8 h-8 rounded-full object-cover"
                       />
@@ -507,7 +477,7 @@ const CoursesPage = () => {
                         </button>
                       ) : (
                         <button
-                          onClick={() => enrollInCourse(course._id)}
+                          onClick={() => handelEnroll(course._id)}
                           className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold flex items-center justify-center gap-2 group"
                           disabled={enrolling}
                         >
@@ -553,150 +523,9 @@ const CoursesPage = () => {
           </>
         )}
 
-{/* My Courses Tab */}
+        {/* My Courses Tab */}
         {activeTab === "my-courses" && (
-          <div>
-            {myEnrolledCourses.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 max-w-md mx-auto shadow-lg border border-white/20">
-                  <GraduationCap className="w-20 h-20 text-gray-400 mx-auto mb-6" />
-                  <h3 className="text-2xl font-bold text-gray-600 mb-4">No enrolled courses yet</h3>
-                  <p className="text-gray-500 mb-6">Start your learning journey by enrolling in courses</p>
-                  <button
-                    onClick={() => setActiveTab("all-courses")}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors duration-300 font-medium"
-                  >
-                    Browse Courses
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* My Courses Header */}
-                <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-2">My Learning Dashboard</h2>
-                  <p className="text-gray-600">Track your progress and continue your learning journey</p>
-                </div>
-
-                {/* Progress Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <BookOpen className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <h3 className="font-semibold text-gray-800">Enrolled Courses</h3>
-                    </div>
-                    <p className="text-2xl font-bold text-blue-600">{enrolledCourses.size}</p>
-                  </div>
-
-                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-green-100 rounded-lg">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <h3 className="font-semibold text-gray-800">Completed Lessons</h3>
-                    </div>
-                    <p className="text-2xl font-bold text-green-600">
-                      {Object.values(courseProgress).reduce((sum, progress) => sum + progress.completedLessons, 0)}
-                    </p>
-                  </div>
-
-                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="p-2 bg-purple-100 rounded-lg">
-                        <Award className="w-5 h-5 text-purple-600" />
-                      </div>
-                      <h3 className="font-semibold text-gray-800">Certificates</h3>
-                    </div>
-                    <p className="text-2xl font-bold text-purple-600">
-                      {
-                        Object.entries(courseProgress).filter(
-                          ([_, progress]) => progress.completedLessons === progress.totalLessons,
-                        ).length
-                      }
-                    </p>
-                  </div>
-                </div>
-
-                {/* Enrolled Courses */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {myEnrolledCourses.map((course) => {
-                    const progress = courseProgress[course._id] || { completedLessons: 0, totalLessons: course.lessons }
-                    const progressPercentage = getProgressPercentage(course._id)
-                    const isCompleted = progress.completedLessons === progress.totalLessons
-                    return (
-                      <div
-                        key={course._id}
-                        className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/20 overflow-hidden hover:shadow-xl transition-all duration-300"
-                      >
-                        <div className="flex">
-                          {/* Course Image */}
-                          <div className="w-32 h-32 relative">
-                            <img
-                              src={course.image || "/placeholder.svg"}
-                              alt={course.title}
-                              className="w-full h-full object-cover"
-                            />
-                            {isCompleted && (
-                              <div className="absolute inset-0 bg-green-500/90 flex items-center justify-center">
-                                <Award className="w-8 h-8 text-white" />
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Course Info */}
-                          <div className="flex-1 p-6">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1">
-                                <h3 className="text-lg font-bold text-gray-800 mb-1">{course.title}</h3>
-                                <p className="text-sm text-gray-600">By {course.instructor}</p>
-                              </div>
-                              <button
-                                onClick={() => unenrollFromCourse(course._id)}
-                                className="p-1 text-gray-400 hover:text-red-500 transition-colors duration-300"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-
-                            {/* Progress Bar */}
-                            <div className="mb-4">
-                              <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                                <span>Progress</span>
-                                <span>{progressPercentage}% Complete</span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div
-                                  className={`h-2 rounded-full transition-all duration-500 ${
-                                    isCompleted ? "bg-green-500" : "bg-blue-500"
-                                  }`}
-                                  style={{ width: `${progressPercentage}%` }}
-                                ></div>
-                              </div>
-                              <div className="flex items-center space-x-2 text-sm text-gray-500 mt-2">
-                                <span>{progress.completedLessons} / {progress.totalLessons} Lessons Completed</span>
-                              </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="mt-4 flex gap-2">
-                              <button className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors">
-                                Go to Course
-                              </button>
-                              <button onClick={() => unenrollFromCourse(course._id)} className="text-sm px-3 py-2 border border-gray-300 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors">
-                                Unenroll
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </>
-            )}
-          </div>
+          <EnrolledCourses />
         )}
       </div>
     </div>
