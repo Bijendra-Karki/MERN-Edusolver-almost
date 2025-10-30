@@ -66,7 +66,7 @@ const subjectSchema = new Schema(
         trim: true,
       },
     ],
-    lessons: {
+  progress: {
       type: Number,
       default: 0,
     },

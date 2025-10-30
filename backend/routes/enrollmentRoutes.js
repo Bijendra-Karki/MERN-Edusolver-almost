@@ -22,7 +22,7 @@ router.get('/my', requireSignin, getUserEnrollments);
 
 // GET /api/enroll/:id - Get a specific enrollment detail
 // Secured: Authorization handled inside the controller (user or admin)
-router.get('/:id', requireSignin, getEnrollmentById);
+router.get('/activityDetails/:id', requireSignin, getEnrollmentById);
 
 
 // -----------------------------------------------------------

@@ -17,6 +17,8 @@ export default function CourseOpener() {
     >
       <UserPlus className="w-4 h-4 text-gray-600" />
       <span className="text-gray-800">Add Course</span>
+     
     </button>
+  
   );
 }

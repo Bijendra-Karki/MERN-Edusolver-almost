@@ -242,15 +242,39 @@ export const userDetails = async (req, res) => {
     }
 };
 
+
+/**
+ * =====================
+ * Get Current Authenticated User (user/me)
+ * =====================
+ */
+export const getMe = async (req, res) => {
+    try {
+        // req.auth is set by the requireSignin middleware and contains the decoded JWT payload
+        const userId = req.auth._id; 
+        
+        // Find the user by ID and exclude the password field
+        const user = await User.findById(userId).select('-password');
+
+        if (!user) {
+            // This case should ideally not happen if the token is valid, 
+            // but it's a good safety check if the user was deleted after the token was issued.
+            return res.status(404).json({ error: 'Authenticated user not found' });
+        }
+
+        res.json(user);
+    } catch (err) {
+        // Handle server-side errors
+        console.error(err);
+        res.status(500).json({ error: 'Server error retrieving user data.', details: err.message });
+    }
+};
+
 /**
  * =====================
  * Update a user
  * =====================
  */
-// userController.js (or wherever your controllers are defined)
-
-// Assuming 'User' model is imported here
-// import User from '../models/User.js'; 
 
 export const updateUser = async (req, res) => {
     try {
@@ -329,11 +353,16 @@ export const updateUser = async (req, res) => {
  * =====================
  */
 // ... (rest of your middleware code remains the same)
-export const requireUser = expressjwt({
-    secret: process.env.JWT_SECRET,
-    algorithms: ['HS256'],
-    requestProperty: 'auth'
-});
+export const requireUser = (req, res, next) => {
+  const allowedRoles = ["admin", "expert", "student"];
+  if (!req.auth || !allowedRoles.includes(req.auth.role)) {
+    return res
+      .status(403)
+      .json({ error: "Access denied. Role not assigned to user." });
+  }
+  next();
+};
+
 
 
 export const requireSignin = expressjwt({
@@ -348,18 +377,23 @@ export const requireAdmin = (req, res, next) => {
     next();
 };
 
-// Instructor (teacher) only
+// Expert only
 export const requireInstructor = (req, res, next) => {
-    if (req.auth.role !== 'instructor' && req.auth.role !== 'admin') {
-        return res.status(403).json({ error: 'Access denied. Instructors only.' });
+    if (req.auth.role !== 'expert' && req.auth.role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied. Experts only.' });
     }
     next();
 };
 
 // Student only
 export const requireStudent = (req, res, next) => {
-    if (req.auth.role !== 'student') return res.status(403).json({ error: 'Access denied. Students only.' });
-    next();
+  if (!req.auth) {
+    return res.status(401).json({ message: "User not authenticated" });
+  }
+  if (req.auth.role !== "student") {
+    return res.status(403).json({ message: "Access denied. Students only." });
+  }
+  next();
 };
 
 /**

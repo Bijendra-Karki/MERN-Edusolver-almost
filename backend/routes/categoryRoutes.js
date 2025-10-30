@@ -7,17 +7,17 @@ import {
   deleteCategory,
 } from "../controllers/categoryController.js";
 
-import { requireUser, requireAdmin } from "../controllers/authController.js";
+import { requireUser, requireAdmin, requireSignin } from "../controllers/authController.js";
 
 const router = express.Router();
 
 // Admin Routes
-router.post("/createCategory", requireUser, requireAdmin, createCategory);
-router.put("/updateCategory/:id", requireUser, requireAdmin, updateCategory);
-router.delete("/deleteCategory/:id", requireUser, requireAdmin, deleteCategory);
+router.post("/createCategory", requireSignin, requireAdmin, createCategory);
+router.put("/updateCategory/:id", requireSignin, requireAdmin, updateCategory);
+router.delete("/deleteCategory/:id", requireSignin, requireAdmin, deleteCategory);
 
 // Public Routes
-router.get("/categoryList", requireUser, getCategories);
-router.get("/category/:slug",  requireUser,getCategoryBySlug);
+router.get("/categoryList", requireSignin, requireUser, getCategories);
+router.get("/category/:slug", requireSignin, requireUser, getCategoryBySlug);
 
 export default router;

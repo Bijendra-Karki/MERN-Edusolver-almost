@@ -59,11 +59,11 @@ export const getCategoryBySlug = async (req, res) => {
  */
 export const updateCategory = async (req, res) => {
   try {
-    const { name, description, icon, color } = req.body;
+    const { name, icon, color, courseCount } = req.body;
 
     const category = await Category.findByIdAndUpdate(
       req.params.id,
-      { name, description, icon, color },
+      { name, icon, color, courseCount },
       { new: true, runValidators: true }
     );
 

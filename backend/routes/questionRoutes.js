@@ -1,27 +1,28 @@
-import express from 'express';
+import express from "express";
 import {
+  createQuestion,
   getQuestions,
   getQuestionById,
-  createQuestion,
   updateQuestion,
-  deleteQuestion
-} from '../controllers/questionController.js';
+  deleteQuestion,
+} from "../controllers/questionController.js";
+import { requireInstructor, requireSignin, requireUser } from "../controllers/authController.js";
 
 const router = express.Router();
 
-// GET all questions
-router.get('questionlist/', getQuestions);
+// Create a new question
+router.post("/createQuestion",requireSignin,requireInstructor, createQuestion);
 
-// GET single question by ID
-router.get('questiondetails/:id', getQuestionById);
+// Get all questions or filter by examSet (?examSet=<id>)
+router.get("/questionList", requireSignin,requireUser,getQuestions);
 
-// CREATE new question
-router.post('/postquestion', createQuestion);
+// Get single question
+router.get("/questionDetails/:id", getQuestionById);
 
-// UPDATE existing question
-router.put('/updatequestion/:id', updateQuestion);
+// Update question
+router.put("/questionUpdate/:id", updateQuestion);
 
-// DELETE question
-router.delete('deletequestion/:id', deleteQuestion);
+// Delete question
+router.delete("/questionDelete/:id", deleteQuestion);
 
 export default router;

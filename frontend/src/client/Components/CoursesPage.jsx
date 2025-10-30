@@ -23,26 +23,9 @@ import {
 } from "lucide-react"
 import EnrolledCourses from "./EnrolledCourses";
 import { getToken, isAuthenticated } from "../../components/utils/authHelper";
-// const BACKEND_URL = "http://localhost:8000";//sodhne xa
-// import { isAuthenticated } from '../../components/auth/AuthContainer' // Assuming this is your auth function
 
-// API function to post a new enrollment
-
-
-const postEnrollment = async (courseId, userId, token) => {
-  try {
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      }
-    };
-    const response = await axios.post(`/api/enrollment/enrollList`, { courseId, userId }, config);
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.error || 'Failed to enroll in the course.');
-  }
-};
+// Renaming the state variable to avoid conflict and clearly store the actual enrollment objects.
+// 'enrolledCourseIds' will be the Set used for quick lookup (course._id).
 
 const CoursesPage = () => {
   const [activeTab, setActiveTab] = useState("all-courses")
@@ -50,26 +33,33 @@ const CoursesPage = () => {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("popular")
   const [favorites, setFavorites] = useState(new Set())
-  const [enrolledCourses, setEnrolledCourses] = useState(new Set())
+  
+  // 1. New state to hold the actual array of enrollment objects fetched from the API
+  const [userEnrollments, setUserEnrollments] = useState([]); 
+
+  // 2. The original state, now explicitly for *Course IDs* for quick enrollment check
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState(new Set())
+  
   const [courseProgress, setCourseProgress] = useState({})
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [enrolling, setEnrolling] = useState(false); // New loading state for enrollment
-  const navigate = useNavigate(); 
+  const [enrolling, setEnrolling] = useState(false);
+  const navigate = useNavigate();
 
-  // Get user info and token
-  // const { user, token } = isAuthenticated();
+  // --- CONFLICT RESOLUTION: COMBINED ENROLLMENT FETCHING ---
+  // We combine the initial load from localStorage and the API call into one logical sequence.
 
-  // Load state from localStorage on component mount
+  // New state for enrollment fetch loading to separate it from the main course list loading
+  const [enrollmentsLoading, setEnrollmentsLoading] = useState(true);
+
+  // 1. Initial Load from LocalStorage (for course progress/favorites)
   useEffect(() => {
-    const savedEnrolledCourses = localStorage.getItem("enrolledCourses")
     const savedCourseProgress = localStorage.getItem("courseProgress")
     const savedFavorites = localStorage.getItem("favoriteCourses")
 
-    if (savedEnrolledCourses) {
-      setEnrolledCourses(new Set(JSON.parse(savedEnrolledCourses)))
-    }
+    // Note: We'll rely on the API for current enrollments, not localStorage, 
+    // but keep local storage for non-critical/sync items like progress and favorites.
     if (savedCourseProgress) {
       setCourseProgress(JSON.parse(savedCourseProgress))
     }
@@ -77,36 +67,103 @@ const CoursesPage = () => {
       setFavorites(new Set(JSON.parse(savedFavorites)))
     }
   }, [])
-
-  // Fetch courses from the API
+  
+  // 2. Fetch User Enrollments from API and update both related states
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchEnrollments = async () => {
+      setEnrollmentsLoading(true);
       try {
-        setLoading(true)
-        const response = await axios.get("/api/subjects/subjectsList")
+        const token = getToken();
+        if (!token || !isAuthenticated()) {
+          // If no token or not authenticated, stop, but don't show an error
+          setUserEnrollments([]);
+          setEnrolledCourseIds(new Set());
+          return;
+        }
 
-        if (response.data) {
-          const coursesData = response.data;
-          setCourses(coursesData);
+        const config = {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        };
+        
+        // API Call: GET /api/enrollments/my
+        const response = await axios.get('/api/enrollments/my', config);
+        
+        const enrollmentsArray = response.data || [];
+        setUserEnrollments(enrollmentsArray); // Store the full enrollment objects
+
+        // Convert the array of enrollment objects into a Set of Subject IDs for quick lookup
+        const enrolledIds = new Set(enrollmentsArray.map(e => e.subject_id?._id || e.subject_id)); 
+        setEnrolledCourseIds(enrolledIds);
+        
+      } catch (error) {
+        console.error("Error fetching enrollments:", error);
+      } finally {
+        setEnrollmentsLoading(false);
+      }
+    };
+
+    fetchEnrollments();
+  }, []); // Run once on mount
+
+  // 3. Fetch All Courses from the API (Your original logic)
+ useEffect(() => {
+    const fetchCourses = async () => {
+      setLoading(true);
+
+      try {
+        // ✅ STEP 1: Retrieve token
+        const token = getToken();
+        if (!token) {
+          setError("Authentication required. Please log in again.");
+          navigate("/login");
+          return;
+        }
+
+        // ✅ STEP 2: Prepare config with Authorization header
+        const config = {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        };
+
+        // ✅ STEP 3: Call API
+        const response = await axios.get("/api/subjects/subjectsList", config);
+
+        // ✅ STEP 4: Set data if successful
+        if (response.data && Array.isArray(response.data)) {
+          setCourses(response.data);
         } else {
           setCourses([]);
         }
 
-        setError(null)
+        setError(null);
       } catch (err) {
-        console.error("Failed to fetch courses:", err)
-        setError("Failed to load courses. Please try again later.")
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchCourses()
-  }, [])
+        console.error("❌ Failed to fetch courses:", err);
 
-  // Save state to localStorage whenever it changes
+        if (err.response?.status === 401) {
+          setError("Unauthorized. Please log in again.");
+          navigate("/login");
+        } else if (err.response?.status === 403) {
+          setError("Access denied. You don’t have permission to view courses.");
+        } else {
+          setError("Failed to load courses. Please try again later.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, [navigate]);
+
+  // 4. Save state to localStorage whenever it changes (keeping your original saving logic)
   useEffect(() => {
-    localStorage.setItem("enrolledCourses", JSON.stringify([...enrolledCourses]))
-  }, [enrolledCourses])
+    // Note: You probably want to save the Set of IDs, not the full array from the API, 
+    // to match your original localStorage structure.
+    localStorage.setItem("enrolledCourses", JSON.stringify([...enrolledCourseIds]))
+  }, [enrolledCourseIds])
 
   useEffect(() => {
     localStorage.setItem("courseProgress", JSON.stringify(courseProgress))
@@ -115,6 +172,8 @@ const CoursesPage = () => {
   useEffect(() => {
     localStorage.setItem("favoriteCourses", JSON.stringify([...favorites]))
   }, [favorites])
+
+  // --- REST OF THE COMPONENT LOGIC ---
 
   const categories = [
     { id: "all", name: "All Courses", count: courses.length, icon: BookOpen, color: "bg-blue-500" },
@@ -149,72 +208,70 @@ const CoursesPage = () => {
     }
   })
 
- // CoursesPage.jsx - Inside handelEnroll function
+  // CoursesPage.jsx (Updated handelEnroll)
+  const handelEnroll = async (subjectId) => {
+    setEnrolling(true);
+    const token = getToken();
 
-// CoursesPage.jsx (Updated handelEnroll)
-const handelEnroll = async (subjectId) => {
-  setEnrolling(true);
-  const token = getToken();
-
-  if (!token) {
-    alert("Authentication required. Please log in.");
-    setEnrolling(false);
-    navigate("/login");
-    return;
-  }
-
-  try {
-    // 1️⃣ Fetch subject details from backend
-    const { data: backendSubject } = await axios.get(
-      `/api/subjects/subjectsDetails/${subjectId}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    if (!backendSubject || !backendSubject._id || !backendSubject.price) {
-      throw new Error("Invalid subject details received from server.");
+    if (!token) {
+      alert("Authentication required. Please log in.");
+      setEnrolling(false);
+      navigate("/login");
+      return;
     }
 
-    // 2️⃣ Prepare subject details safely
-    const subjectPaymentDetails = {
-      subject_id: backendSubject._id,
-      price: parseFloat(backendSubject.price).toFixed(2), // ensure 2 decimals
-      title: backendSubject.title,
-    };
+    try {
+      // 1️⃣ Fetch subject details from backend
+      const { data: backendSubject } = await axios.get(
+        `/api/subjects/subjectsDetails/${subjectId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    // 3️⃣ Initiate payment on backend
-    const { data: paymentInitiation } = await axios.post(
-      "/api/payments/initiate",
-      { subjectId: subjectPaymentDetails.subject_id, amount: subjectPaymentDetails.price },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+      if (!backendSubject || !backendSubject._id || !backendSubject.price) {
+        throw new Error("Invalid subject details received from server.");
+      }
 
-    if (!paymentInitiation || !paymentInitiation.formData || !paymentInitiation.signature) {
-      throw new Error("Payment initiation failed. Please try again.");
+      // 2️⃣ Prepare subject details safely
+      const subjectPaymentDetails = {
+        subject_id: backendSubject._id,
+        price: parseFloat(backendSubject.price).toFixed(2), // ensure 2 decimals
+        title: backendSubject.title,
+      };
+
+      // 3️⃣ Initiate payment on backend
+      const { data: paymentInitiation } = await axios.post(
+        "/api/payments/initiate",
+        { subjectId: subjectPaymentDetails.subject_id, amount: subjectPaymentDetails.price },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (!paymentInitiation || !paymentInitiation.formData || !paymentInitiation.signature) {
+        throw new Error("Payment initiation failed. Please try again.");
+      }
+
+      // 4️⃣ Store payment form data for the eSewa page
+      sessionStorage.setItem(
+        "currentPaymentFormData",
+        JSON.stringify({
+          subject: subjectPaymentDetails,
+          formData: paymentInitiation.formData,
+          signature: paymentInitiation.signature,
+        })
+      );
+
+      console.log("Payment initiation successful:", subjectPaymentDetails);
+
+      // 5️⃣ Navigate to eSewa payment page
+      navigate("/esewa-payment");
+    } catch (error) {
+      console.error("Enrollment setup failed:", error.response?.data?.message || error.message);
+      alert(
+        `Failed to start enrollment: ${error.response?.data?.message || error.message}`
+      );
+    } finally {
+      setEnrolling(false);
     }
-
-    // 4️⃣ Store payment form data for the eSewa page
-    sessionStorage.setItem(
-      "currentPaymentFormData",
-      JSON.stringify({
-        subject: subjectPaymentDetails,
-        formData: paymentInitiation.formData,
-        signature: paymentInitiation.signature,
-      })
-    );
-
-    console.log("Payment initiation successful:", subjectPaymentDetails);
-
-    // 5️⃣ Navigate to eSewa payment page
-    navigate("/esewa-payment");
-  } catch (error) {
-    console.error("Enrollment setup failed:", error.response?.data?.message || error.message);
-    alert(
-      `Failed to start enrollment: ${error.response?.data?.message || error.message}`
-    );
-  } finally {
-    setEnrolling(false);
-  }
-};
+  };
 
 
   const getLevelColor = (level) => {
@@ -242,7 +299,8 @@ const handelEnroll = async (subjectId) => {
     return Math.round((progress.completedLessons / progress.totalLessons) * 100)
   }
 
-  if (loading) {
+  // Use a combined loading state
+  if (loading || enrollmentsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center">
@@ -289,7 +347,8 @@ const handelEnroll = async (subjectId) => {
               <div className="flex items-center gap-2">
                 <GraduationCap className="w-5 h-5" />
                 <span>My Courses</span>
-                <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs">{enrolledCourses.size}</span>
+                {/* Use the size of the ID set for the count */}
+                <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs">{enrolledCourseIds.size}</span>
               </div>
             </button>
           </div>
@@ -390,14 +449,14 @@ const handelEnroll = async (subjectId) => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     {/* Overlay Actions */}
                     <div className="absolute top-4 right-4 flex gap-2">
-                     
+
                       <button className="p-2 rounded-full bg-white/80 text-gray-600 hover:bg-white backdrop-blur-sm transition-all duration-300">
                         <Share2 className="w-4 h-4" />
                       </button>
                     </div>
 
-                    {/* Enrollment Status */}
-                    {enrolledCourses.has(course._id) && (
+                    {/* Enrollment Status - Check against the ID Set */}
+                    {enrolledCourseIds.has(course._id) && (
                       <div className="absolute top-4 left-4">
                         <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                           <CheckCircle className="w-3 h-3" />
@@ -407,7 +466,7 @@ const handelEnroll = async (subjectId) => {
                     )}
 
                     {/* Level Badge */}
-                    {!enrolledCourses.has(course._id) && (
+                    {!enrolledCourseIds.has(course._id) && (
                       <div className="absolute top-4 left-4">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-semibold border backdrop-blur-sm ${getLevelColor(
@@ -485,13 +544,14 @@ const handelEnroll = async (subjectId) => {
 
                     {/* Action Buttons */}
                     <div className="flex gap-3">
-                      {enrolledCourses.has(course._id) ? (
+                      {enrolledCourseIds.has(course._id) ? (
                         <button
                           onClick={() => setActiveTab("my-courses")}
                           className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-300 font-semibold flex items-center justify-center gap-2"
                         >
-                          <PlayCircle className="w-4 h-4" />
-                          <span>Continue Learning</span>
+                          {/* 🟢 Change the text here from "Continue Learning" to "Enrolled" or "View Course" */}
+                          <CheckCircle className="w-4 h-4" /> {/* Using CheckCircle for "Enrolled" */}
+                          <span>Enrolled</span>
                         </button>
                       ) : (
                         <button
@@ -543,7 +603,8 @@ const handelEnroll = async (subjectId) => {
 
         {/* My Courses Tab */}
         {activeTab === "my-courses" && (
-          <EnrolledCourses />
+          // Pass the fetched enrollment data to the EnrolledCourses component
+          <EnrolledCourses enrolledCoursesData={userEnrollments} />
         )}
       </div>
     </div>

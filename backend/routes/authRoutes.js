@@ -14,7 +14,8 @@ import {
   updateUser,
   requireInstructor,
   requireStudent,
-  requireUser
+  requireUser,
+  getMe
 } from '../controllers/authController.js';
 import { userValidation, validation, passwordValidation } from '../validation/validator.js';
 
@@ -31,8 +32,9 @@ router.post('/signout', requireSignin, signout);
 // router.post('/signout', signout);
 router.post('/forget/password', forgetPassword);
 router.put('/reset/password/:token', passwordValidation, validation, resetPassword);
-router.get('/user/list', requireSignin, requireAdmin, userList);
+router.get('/user/list', requireSignin, requireUser, userList);
 router.get('/user/details/:id', requireSignin, userDetails);
+router.get('/user/me', requireSignin, getMe);
 // Route for updating a user
 router.put('/userUpdate/:id', requireSignin, requireUser, updateUser);
 

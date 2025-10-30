@@ -1,8 +1,5 @@
 import Enrollment from "../models/enrollmentModel.js";
-import User from "../models/userModel.js";
-import Subject from "../models/subjectModel.js";
-import Payment from "../models/paymentModel.js";
-import crypto from "crypto";
+
 
 
 // NOTE: The payment flow functions (initiatePayment, verifyPaymentAndEnroll)
@@ -12,12 +9,12 @@ import crypto from "crypto";
 // ENROLLMENT CRUD CONTROLLERS
 // -----------------------------------------------------------
 
-// GET all enrollments (Admin only)
+// GET all enrollments 
 export const getEnrollments = async (req, res) => {
   // ⚠️ Access controlled by requireAdmin middleware
   try {
     const enrollments = await Enrollment.find()
-      .populate("user_id", "name email")
+      .populate("user_id", "email")
       .populate("subject_id", "title");
     res.json(enrollments);
   } catch (err) {
@@ -33,7 +30,7 @@ export const getEnrollmentById = async (req, res) => {
     const userRole = req.auth.role;
 
     const enrollment = await Enrollment.findById(enrollmentId)
-      .populate("user_id", "name email")
+      .populate("user_id", "email")
       .populate("subject_id", "title");
 
     if (!enrollment)
@@ -65,7 +62,7 @@ export const getUserEnrollments = async (req, res) => {
   try {
     const enrollments = await Enrollment.find({ user_id: user_id }).populate(
       "subject_id",
-      "title description price"
+      "title image subjectFile progress"
     );
 
     res.json(enrollments);

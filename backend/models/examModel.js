@@ -1,32 +1,18 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
+const { Schema } = mongoose;
 
-const { Schema, Schema: { ObjectId } } = mongoose;
+const examSchema = new Schema(
+  {
+    subject_id: { type: Schema.Types.ObjectId, ref: "Subject", required: true },
+    set_ids: [{ type: Schema.Types.ObjectId, ref: "ExamSet" }],
+    title: { type: String, required: true, trim: true },
+    date: { type: Date },
+    total_questions: { type: Number, required: true, min: 45 },
+    total_marks: { type: Number, required: true, min: 45 },
+    duration: { type: Number, required: true, min: 60 },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true }
+);
 
-const examSchema = new Schema({
-    subject_id: {
-        type: ObjectId,
-        required: true,
-        ref: 'Subject'
-    },
-    title: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    date: {
-        type: Date,
-        required: false
-    },
-    total_marks: {
-        type: Number,
-        required: true,
-        min: 0
-    },
-    duration: {
-        type: Number,
-        required: true,
-        min: 1
-    }
-}, { timestamps: true });
-
-export default mongoose.model('Exam', examSchema);
+export default mongoose.model("Exam", examSchema);

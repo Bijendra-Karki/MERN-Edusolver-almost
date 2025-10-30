@@ -23,10 +23,8 @@ const router = express.Router();
 // POST /api/payments/initiate - Creates DB record, generates signature, and returns eSewa form data.
 router.post('/initiate', requireSignin, initiatePayment); 
 
-// GET /api/payments/verify - External endpoint, NO AUTH NEEDED (Called by eSewa/user browser redirect)
-router.get('/verify', verifyPaymentAndEnroll); 
-
-// Removed the redundant router.post('/generateSignature', requireSignin, generateSignature);
+// POST /api/payments/verify - External endpoint, NO AUTH NEEDED (Called by eSewa/user browser redirect)
+router.post("/verify", verifyPaymentAndEnroll);
 
 
 // -----------------------------------------------------------

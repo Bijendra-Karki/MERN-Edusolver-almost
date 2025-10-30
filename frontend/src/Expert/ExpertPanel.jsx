@@ -41,18 +41,18 @@ import {
 import Button from "../components/button";
 import { getToken, isAuthenticated } from "../components/utils/authHelper";
 import ProfileModal from "./ProfileModal";
+import Feed from "../components/feed/Feed";
 
 export default function ExpertPanel() {
   const navigate = useNavigate();
 
   // 1. Synchronously get auth data at the top
-  const authUser = isAuthenticated(); // { _id: "...", name: "..." } or null/false
+  const authUser = isAuthenticated(); // { user: { _id: "..." } } or null/false
   const token = getToken(); // JWT string or null/false
-  const userId = authUser.user._id;
+  // 💡 FIX: Add a safe check for authUser and authUser.user to prevent crash
+  const userId = authUser && authUser.user ? authUser.user._id : null;
 
   // console.log(authUser.user._id);
-
- 
 
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState("requests");
@@ -77,12 +77,13 @@ export default function ExpertPanel() {
   const [resources, setResources] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
 
+  // 💡 FIX: Added missing state for resource submission loading
+  const [isAddingResource, setIsAddingResource] = useState(false);
+
 
   // ----------------------------------------------------------------------
-  // HANDLERS
+  // HANDLERS (💡 FIX: Added placeholders for all missing functions)
   // ----------------------------------------------------------------------
-
-
 
   const handleLogout = () => {
     localStorage.removeItem("jwt");
@@ -91,12 +92,132 @@ export default function ExpertPanel() {
     navigate("/login");
   };
 
+  const getUrgencyColor = (urgency) => {
+    // Placeholder logic
+    if (urgency === "High") return "bg-red-100 text-red-600 border-red-200";
+    if (urgency === "Medium") return "bg-yellow-100 text-yellow-600 border-yellow-200";
+    return "bg-green-100 text-green-600 border-green-200";
+  };
+
+  const handleAcceptRequest = (request) => {
+    // Placeholder for API call to accept request
+    console.log("Accepting request for:", request.name);
+    // You would typically use axios.post here
+  };
+
+  const handleRejectRequest = (id) => {
+    // Placeholder for API call to reject request
+    console.log("Rejecting request with ID:", id);
+    // You would typically use axios.delete here
+  };
+
+  const openSuggestionModal = () => {
+    setShowSuggestionModal(true);
+  };
+
+  const closeSuggestionModal = () => {
+    setShowSuggestionModal(false);
+    setSuggestion(""); // Clear suggestion text
+    setSelectedStudentForSuggestion(""); // Clear selected student
+  };
+
+  const handleSendSuggestion = () => {
+    // Placeholder for sending suggestion from 'Students' tab modal
+    console.log(`Sending suggestion to ${selectedStudent.name}: ${suggestion}`);
+    // axios.post('/api/suggestions', { studentId: selectedStudent.id, message: suggestion });
+    setSelectedStudent(null);
+    setSuggestion("");
+    alert("Suggestion sent!");
+  };
+
+  const handleSendNewSuggestion = () => {
+    // Placeholder for sending suggestion from 'Suggestions' tab modal
+    console.log(`Sending new suggestion to student ID ${selectedStudentForSuggestion}: ${suggestion}`);
+    // axios.post('/api/suggestions', { studentId: selectedStudentForSuggestion, message: suggestion });
+    closeSuggestionModal();
+    alert("Suggestion sent!");
+  };
+
+  const getResourceIcon = (type) => {
+    // Placeholder to return correct Lucide icon
+    switch (type) {
+      case 'article': return <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />;
+      case 'video': return <Video className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />;
+      case 'image': return <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />;
+      default: return <File className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />;
+    }
+  };
+
+  const formatFileSize = (size) => {
+    if (size === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(size) / Math.log(k));
+    return parseFloat((size / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNewResource({ ...newResource, file: file, url: "" });
+    }
+  };
+
+  const removeFile = () => {
+    setNewResource({ ...newResource, file: null });
+    const fileInput = document.getElementById("file-upload");
+    if (fileInput) fileInput.value = "";
+  };
+
+  const handleAddResource = () => {
+    // Placeholder for submitting resource data (with or without file upload)
+    setIsAddingResource(true);
+    console.log("Adding resource:", newResource.title);
+
+    // In a real app, this would involve Axios and FormData
+    /*
+    const formData = new FormData();
+    formData.append('title', newResource.title);
+    // ... append other fields ...
+    if (newResource.file) {
+      formData.append('file', newResource.file);
+      // axios.post('/api/resources/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+    }
+    // ...
+    */
+
+    setTimeout(() => { // Simulate API latency
+      setIsAddingResource(false);
+      alert("Resource added (mock submission).");
+      // Reset form after successful submission
+      setNewResource({
+        title: "",
+        description: "",
+        type: "article",
+        file: null,
+        url: "",
+      });
+    }, 1500);
+  };
+
+  const handleDeleteResource = (id) => {
+    // Placeholder for deleting resource
+    console.log("Deleting resource with ID:", id);
+    // axios.delete(`/api/resources/${id}`);
+  };
+
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Navigation Tabs */}
       <div className="w-full px-2 sm:px-4 lg:px-8 py-2 sm:py-4">
         <div className="flex flex-wrap gap-1 sm:gap-2 lg:gap-4 mb-4 sm:mb-6 overflow-x-auto">
           {[
+            {
+              id: "Activity",
+              label: "Activity Feed",
+              icon: TrendingUp
+            },
             {
               id: "requests",
               label: "Student Requests",
@@ -109,7 +230,11 @@ export default function ExpertPanel() {
               icon: Users,
               count: students.length,
             },
-            { id: "suggestions", label: "Suggestions", icon: MessageSquare },
+            {
+              id: "suggestions",
+              label: "Suggestions",
+              icon: MessageSquare
+            },
             {
               id: "resources",
               label: "Resources",
@@ -121,22 +246,20 @@ export default function ExpertPanel() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-2 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm lg:text-base whitespace-nowrap ${
-                activeTab === tab.id
-                  ? "bg-blue-600 text-white shadow-md"
-                  : "bg-white text-gray-600 hover:bg-blue-50 border border-blue-100"
-              }`}
+              className={`px-2 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm lg:text-base whitespace-nowrap ${activeTab === tab.id
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-white text-gray-600 hover:bg-blue-50 border border-blue-100"
+                }`}
             >
               <tab.icon className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
               <span className="hidden sm:inline">{tab.label}</span>
               <span className="sm:hidden">{tab.label.split(" ")[0]}</span>
               {tab.count !== undefined && (
                 <span
-                  className={`px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs ${
-                    activeTab === tab.id
-                      ? "bg-white/20"
-                      : "bg-blue-100 text-blue-600"
-                  }`}
+                  className={`px-1 sm:px-2 py-0.5 sm:py-1 rounded-full text-xs ${activeTab === tab.id
+                    ? "bg-white/20"
+                    : "bg-blue-100 text-blue-600"
+                    }`}
                 >
                   {tab.count}
                 </span>
@@ -144,6 +267,15 @@ export default function ExpertPanel() {
             </button>
           ))}
         </div>
+        {activeTab == "Activity" && (
+          <div className="space-y-4 sm:space-y-6">
+            <div className="bg-white/90 backdrop-blur-sm border border-blue-100 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">Activity Feed</h2>
+              <Feed />
+            </div>
+          </div>
+        )}
+
 
         {/* Student Requests Tab */}
         {activeTab === "requests" && (
@@ -472,11 +604,10 @@ export default function ExpertPanel() {
                           </h3>
                           <div className="flex items-center gap-2">
                             <span
-                              className={`px-2 py-1 text-xs rounded ${
-                                suggestion.status === "read"
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-yellow-100 text-yellow-700"
-                              }`}
+                              className={`px-2 py-1 text-xs rounded ${suggestion.status === "read"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-yellow-100 text-yellow-700"
+                                }`}
                             >
                               {suggestion.status}
                             </span>
@@ -516,11 +647,10 @@ export default function ExpertPanel() {
                     onChange={(e) =>
                       setNewResource({ ...newResource, title: e.target.value })
                     }
-                    className={`px-3 sm:px-4 py-2 sm:py-3 bg-white border rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 text-sm sm:text-base transition-colors ${
-                      newResource.title.trim()
-                        ? "border-green-300 focus:border-green-500 focus:ring-green-100"
-                        : "border-gray-200 focus:border-blue-500 focus:ring-blue-100"
-                    }`}
+                    className={`px-3 sm:px-4 py-2 sm:py-3 bg-white border rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 text-sm sm:text-base transition-colors ${newResource.title.trim()
+                      ? "border-green-300 focus:border-green-500 focus:ring-green-100"
+                      : "border-gray-200 focus:border-blue-500 focus:ring-blue-100"
+                      }`}
                   />
                   {newResource.title.trim() && (
                     <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
@@ -535,7 +665,7 @@ export default function ExpertPanel() {
                   onChange={(e) =>
                     setNewResource({ ...newResource, type: e.target.value })
                   }
-                  className="px-3 sm:px-4 py-2 sm:py-3 bg-white border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 text-sm sm:text-base"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white border border-gray-200 rounded-lg text-gray-800 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 text-sm sm:text-base"
                 >
                   <option value="article">📄 Article</option>
                   <option value="video">🎥 Video</option>
@@ -558,11 +688,10 @@ export default function ExpertPanel() {
                     })
                   }
                   rows={3}
-                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-white border rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 text-sm sm:text-base transition-colors ${
-                    newResource.description.trim()
-                      ? "border-green-300 focus:border-green-500 focus:ring-green-100"
-                      : "border-gray-200 focus:border-blue-500 focus:ring-blue-100"
-                  }`}
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 bg-white border rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 text-sm sm:text-base transition-colors ${newResource.description.trim()
+                    ? "border-green-300 focus:border-green-500 focus:ring-green-100"
+                    : "border-gray-200 focus:border-blue-500 focus:ring-blue-100"
+                    }`}
                 />
                 <div className="flex justify-between items-center mt-1">
                   {newResource.description.trim() && (
@@ -659,15 +788,14 @@ export default function ExpertPanel() {
                     !newResource.description.trim() ||
                     (!newResource.file && !newResource.url.trim())
                   }
-                  className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base font-medium ${
-                    isAddingResource
-                      ? "bg-blue-400 cursor-not-allowed text-white"
-                      : !newResource.title.trim() ||
-                        !newResource.description.trim() ||
-                        (!newResource.file && !newResource.url.trim())
+                  className={`flex-1 px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base font-medium ${isAddingResource
+                    ? "bg-blue-400 cursor-not-allowed text-white"
+                    : !newResource.title.trim() ||
+                      !newResource.description.trim() ||
+                      (!newResource.file && !newResource.url.trim())
                       ? "bg-gray-300 cursor-not-allowed text-gray-500"
                       : "bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg"
-                  }`}
+                    }`}
                 >
                   {isAddingResource ? (
                     <>
@@ -811,7 +939,7 @@ export default function ExpertPanel() {
 
         {/* Profile Tab */}
         {activeTab === "profile" && (
-         <ProfileModal/>
+          <ProfileModal />
         )}
       </div>
 

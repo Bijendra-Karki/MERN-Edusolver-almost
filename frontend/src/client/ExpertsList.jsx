@@ -1,6 +1,7 @@
+"use client";
 
-
-import { useState } from "react"
+import { useState, useEffect } from "react";
+import axios from "axios";
 import {
   User,
   Star,
@@ -13,154 +14,54 @@ import {
   Search,
   MapPin,
   CheckCircle,
-} from "lucide-react"
+} from "lucide-react";
+import { getToken } from "../components/utils/authHelper";
 
 const ExpertsList = () => {
-  const [selectedSpecialty, setSelectedSpecialty] = useState("all")
-  const [selectedExperience, setSelectedExperience] = useState("all")
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedExpert, setSelectedExpert] = useState(null)
+  const [experts, setExperts] = useState([]);
+  const [selectedSpecialty, setSelectedSpecialty] = useState("all");
+  const [selectedExperience, setSelectedExperience] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedExpert, setSelectedExpert] = useState(null);
 
-  const experts = [
-    {
-      id: 1,
-      name: "Dr. Sarah Johnson",
-      title: "Senior Software Engineer",
-      company: "Google",
-      specialty: "web-development",
-      experience: "8+ years",
-      rating: 4.9,
-      reviews: 127,
-      hourlyRate: "$80",
-      avatar: "/placeholder.svg?height=100&width=100",
-      bio: "Full-stack developer with expertise in React, Node.js, and cloud architecture. Passionate about mentoring students and helping them build real-world projects.",
-      skills: ["React", "Node.js", "AWS", "MongoDB", "TypeScript"],
-      availability: "Weekends",
-      languages: ["English", "Hindi"],
-      location: "San Francisco, CA",
-      verified: true,
-      responseTime: "Within 2 hours",
-      totalSessions: 340,
-      successRate: "98%",
-      education: "MS Computer Science - Stanford University",
-      certifications: ["AWS Solutions Architect", "Google Cloud Professional"],
-    },
-    {
-      id: 2,
-      name: "Prof. Michael Chen",
-      title: "AI Research Scientist",
-      company: "Microsoft Research",
-      specialty: "machine-learning",
-      experience: "12+ years",
-      rating: 4.8,
-      reviews: 89,
-      hourlyRate: "$100",
-      avatar: "/placeholder.svg?height=100&width=100",
-      bio: "Machine Learning expert with PhD in AI. Published 50+ research papers and mentored 100+ students in ML/AI projects.",
-      skills: ["Python", "TensorFlow", "PyTorch", "Deep Learning", "NLP"],
-      availability: "Evenings",
-      languages: ["English", "Mandarin"],
-      location: "Seattle, WA",
-      verified: true,
-      responseTime: "Within 4 hours",
-      totalSessions: 256,
-      successRate: "96%",
-      education: "PhD Artificial Intelligence - MIT",
-      certifications: ["TensorFlow Developer", "AWS ML Specialty"],
-    },
-    {
-      id: 3,
-      name: "Emily Rodriguez",
-      title: "Mobile App Developer",
-      company: "Uber",
-      specialty: "mobile-development",
-      experience: "6+ years",
-      rating: 4.7,
-      reviews: 156,
-      hourlyRate: "$70",
-      avatar: "/placeholder.svg?height=100&width=100",
-      bio: "iOS and Android developer with experience in React Native and Flutter. Love helping students build their first mobile apps.",
-      skills: ["React Native", "Flutter", "iOS", "Android", "Firebase"],
-      availability: "Flexible",
-      languages: ["English", "Spanish"],
-      location: "Austin, TX",
-      verified: true,
-      responseTime: "Within 1 hour",
-      totalSessions: 198,
-      successRate: "94%",
-      education: "BS Computer Science - UT Austin",
-      certifications: ["Google Associate Android Developer"],
-    },
-    {
-      id: 4,
-      name: "David Kumar",
-      title: "Database Architect",
-      company: "Oracle",
-      specialty: "database",
-      experience: "10+ years",
-      rating: 4.9,
-      reviews: 203,
-      hourlyRate: "$90",
-      avatar: "/placeholder.svg?height=100&width=100",
-      bio: "Database expert specializing in SQL, NoSQL, and database optimization. Helped 200+ students master database concepts.",
-      skills: ["SQL", "MongoDB", "PostgreSQL", "Redis", "Database Design"],
-      availability: "Weekdays",
-      languages: ["English", "Hindi", "Tamil"],
-      location: "Bangalore, India",
-      verified: true,
-      responseTime: "Within 3 hours",
-      totalSessions: 445,
-      successRate: "97%",
-      education: "MS Database Systems - IIT Bombay",
-      certifications: ["Oracle Certified Professional", "MongoDB Certified Developer"],
-    },
-    {
-      id: 5,
-      name: "Lisa Park",
-      title: "Cybersecurity Specialist",
-      company: "CrowdStrike",
-      specialty: "cybersecurity",
-      experience: "7+ years",
-      rating: 4.8,
-      reviews: 134,
-      hourlyRate: "$85",
-      avatar: "/placeholder.svg?height=100&width=100",
-      bio: "Cybersecurity expert with focus on network security, ethical hacking, and security architecture. CISSP certified.",
-      skills: ["Network Security", "Penetration Testing", "Python", "Linux", "Security Auditing"],
-      availability: "Evenings & Weekends",
-      languages: ["English", "Korean"],
-      location: "New York, NY",
-      verified: true,
-      responseTime: "Within 2 hours",
-      totalSessions: 287,
-      successRate: "95%",
-      education: "MS Cybersecurity - Carnegie Mellon",
-      certifications: ["CISSP", "CEH", "OSCP"],
-    },
-    {
-      id: 6,
-      name: "Alex Thompson",
-      title: "DevOps Engineer",
-      company: "Netflix",
-      specialty: "devops",
-      experience: "9+ years",
-      rating: 4.6,
-      reviews: 98,
-      hourlyRate: "$95",
-      avatar: "/placeholder.svg?height=100&width=100",
-      bio: "DevOps and cloud infrastructure expert. Specialized in CI/CD, containerization, and cloud platforms.",
-      skills: ["Docker", "Kubernetes", "AWS", "Jenkins", "Terraform"],
-      availability: "Weekends",
-      languages: ["English"],
-      location: "Los Angeles, CA",
-      verified: true,
-      responseTime: "Within 6 hours",
-      totalSessions: 167,
-      successRate: "93%",
-      education: "BS Software Engineering - UC Berkeley",
-      certifications: ["AWS DevOps Professional", "Kubernetes Administrator"],
-    },
-  ]
+  const token = getToken();
+
+  // Fetch experts from API
+  useEffect(() => {
+    const fetchExperts = async () => {
+      try {
+        const res = await axios.get("/api/auth/user/list", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        // Filter only experts with role === 'expert'
+        const expertUsers = res.data.filter((user) => user.role === "expert");
+        setExperts(expertUsers);
+      } catch (err) {
+        console.error("Failed to fetch experts:", err);
+      }
+    };
+    fetchExperts();
+  }, [token]);
+
+  // Filter experts based on search, specialty, and experience
+  const filteredExperts = experts.filter((expert) => {
+    const matchesSpecialty =
+      selectedSpecialty === "all" || expert.specialization?.includes(selectedSpecialty);
+    const matchesExperience =
+      selectedExperience === "all" ||
+      (expert.experience &&
+        expert.experience.includes(selectedExperience.replace("+", "")));
+    const matchesSearch =
+      expert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (expert.title && expert.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (expert.company && expert.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (expert.skills &&
+        expert.skills.some((skill) => skill.toLowerCase().includes(searchTerm.toLowerCase())));
+    return matchesSpecialty && matchesExperience && matchesSearch;
+  });
 
   const specialties = [
     { id: "all", name: "All Specialties" },
@@ -170,26 +71,14 @@ const ExpertsList = () => {
     { id: "database", name: "Database" },
     { id: "cybersecurity", name: "Cybersecurity" },
     { id: "devops", name: "DevOps" },
-  ]
+  ];
 
   const experienceLevels = [
     { id: "all", name: "All Experience" },
     { id: "5+", name: "5+ Years" },
     { id: "8+", name: "8+ Years" },
     { id: "10+", name: "10+ Years" },
-  ]
-
-  const filteredExperts = experts.filter((expert) => {
-    const matchesSpecialty = selectedSpecialty === "all" || expert.specialty === selectedSpecialty
-    const matchesExperience =
-      selectedExperience === "all" || expert.experience.includes(selectedExperience.replace("+", ""))
-    const matchesSearch =
-      expert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expert.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      expert.skills.some((skill) => skill.toLowerCase().includes(searchTerm.toLowerCase()))
-    return matchesSpecialty && matchesExperience && matchesSearch
-  })
+  ];
 
   const getSpecialtyColor = (specialty) => {
     const colors = {
@@ -199,12 +88,12 @@ const ExpertsList = () => {
       database: "bg-orange-100 text-orange-800",
       cybersecurity: "bg-red-100 text-red-800",
       devops: "bg-yellow-100 text-yellow-800",
-    }
-    return colors[specialty] || "bg-gray-100 text-gray-800"
-  }
+    };
+    return colors[specialty] || "bg-gray-100 text-gray-800";
+  };
 
   const ExpertModal = ({ expert, onClose }) => {
-    if (!expert) return null
+    if (!expert) return null;
 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -285,7 +174,7 @@ const ExpertsList = () => {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center">
                     <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                    <span className="text-black">{expert.location}</span>
+                    <span className="text-black">{expert.address}</span>
                   </div>
                   <div className="flex items-center">
                     <Clock className="w-4 h-4 text-gray-400 mr-2" />
@@ -301,7 +190,7 @@ const ExpertsList = () => {
               <div>
                 <h3 className="text-lg font-bold text-gray-800 mb-3">Certifications</h3>
                 <div className="space-y-1">
-                  {expert.certifications.map((cert) => (
+                  {expert.certifications?.map((cert) => (
                     <div key={cert} className="flex items-center text-sm">
                       <Award className="w-4 h-4 text-yellow-500 mr-2" />
                       <span className="text-black">{cert}</span>
@@ -329,8 +218,8 @@ const ExpertsList = () => {
           </div>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
@@ -418,8 +307,8 @@ const ExpertsList = () => {
                 </div>
 
                 <div className="flex items-center justify-between mb-4">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getSpecialtyColor(expert.specialty)}`}>
-                    {specialties.find((s) => s.id === expert.specialty)?.name}
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${getSpecialtyColor(expert.specialization)}`}>
+                    {specialties.find((s) => s.id === expert.specialization)?.name}
                   </span>
                   <span className="text-lg font-bold text-green-600">{expert.hourlyRate}/hr</span>
                 </div>
@@ -455,7 +344,7 @@ const ExpertsList = () => {
                   <button
                     className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
                     onClick={(e) => {
-                      e.stopPropagation()
+                      e.stopPropagation();
                       // Handle message action
                     }}
                   >
@@ -465,7 +354,7 @@ const ExpertsList = () => {
                   <button
                     className="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
                     onClick={(e) => {
-                      e.stopPropagation()
+                      e.stopPropagation();
                       // Handle book session action
                     }}
                   >
@@ -490,7 +379,7 @@ const ExpertsList = () => {
         <ExpertModal expert={selectedExpert} onClose={() => setSelectedExpert(null)} />
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ExpertsList
+export default ExpertsList;

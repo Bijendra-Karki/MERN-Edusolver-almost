@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Users, BookOpen, BarChart3, Settings, LogOut } from "lucide-react"
+import { Users, BookOpen, BarChart3, Settings, LogOut, SquareChevronDown } from "lucide-react"
 import CourseOpener from "./CouserOpener";
 import ResponseOpener from "./ResponseOpener";
 import ExamOpener from "./ExamOpener";
@@ -83,8 +83,11 @@ export default function AdminPanel() {
                 Manage Courses
               </button>
               <CourseOpener />
+               <button onClick={() => navigate("/CategoryAddpage")} className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
+               Add Category
+              </button>
               <ResponseOpener />
-              <button className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
+              <button onClick={() => navigate("/feed")} className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
                 Content Analytics
               </button>
             </div>

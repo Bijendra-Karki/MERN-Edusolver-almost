@@ -24,13 +24,11 @@ const paymentSchema = new Schema({
         enum: ['eSewa', 'Khalti', 'Cash', 'Other'],
         default: 'eSewa'
     },
-    // CRUCIAL: External transaction reference ID. 
-    // Pre-redirection: Stores the payment's own _id.toHexString() (Our internal UUID)
-    // Post-verification: Stores the actual eSewa Reference ID (CRN)
-    gateway_ref_id: { 
+  
+   transaction_uuid: { 
         type: String,
-        unique: true,
-        sparse: true 
+        required: true,
+        unique: true
     },
     // 1. Transaction status (from the gateway)
     status: {
