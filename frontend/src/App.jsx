@@ -2,7 +2,7 @@
 "use client";
 
 import "./App.css";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Outlet } from "react-router-dom";
 import PageNotFound from "./components/PageNotFound";
 
 // --- Public Components ---
@@ -48,6 +48,7 @@ import CategoryManagement from "./Admin/forms/AddCategory";
 // --- Auth ---
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Footer from "./components/ToperFooter/Footer";
+import StudentRoute from "./client/StudentRoute";
 
 // --- Home placeholders ---
 const AdminHome = () => <div className="p-6">Admin Panel Dashboard Home</div>;
@@ -159,12 +160,13 @@ function AppContent() {
           <Route
             path="/clientPanel"
             element={
-              <ProtectedRoute requiredRole="student">
-                <ClientPanel />
-              </ProtectedRoute>
+              // The StudentRoute wrapper is applied ONLY once.
+              <StudentRoute>
+                <Outlet />
+              </StudentRoute>
             }
           >
-            <Route index element={<ClientHome />} />
+            <Route index element={<ClientPanel />} />
             <Route path="courses" element={<CoursesPage />} />
             <Route path="practice" element={<PracticePage />} />
             <Route path="materials" element={<MaterialsPage />} />
@@ -176,6 +178,7 @@ function AppContent() {
             <Route path="quiz/:id" element={<Quiz />} />
             <Route path="results/:id" element={<Results />} />
           </Route>
+
 
           {/* --- Expert Panel --- */}
           <Route
@@ -194,7 +197,7 @@ function AppContent() {
         </Routes>
       </div>
       <div className="sticky top-0 z-50 bg-white shadow-sm">
-        <Footer/>
+        <Footer />
       </div>
     </div>
   );

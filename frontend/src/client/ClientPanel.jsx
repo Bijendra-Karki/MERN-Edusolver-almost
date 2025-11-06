@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams, Outlet } from "react-router-dom"
+
 import {
   BookOpen,
   Trophy,
@@ -226,7 +227,7 @@ export default function ClientPanel() {
                         <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
                         <div className="w-full grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-3">
                           <button
-                            onClick={() => navigate("/courses")}
+                            onClick={() => navigate("/clientPanel/courses")}
                             className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100 text-sm sm:text-base flex items-center gap-3"
                           >
                             <BookOpen className="w-5 h-5 text-blue-600" />
