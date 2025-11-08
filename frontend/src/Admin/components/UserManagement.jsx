@@ -13,10 +13,10 @@ function UserManagement() {
     setIsOpen(false);
 
     if (option === "Add Register New Expert and Drop Teacher") {
-      navigate("/TeacherAddpage");
+      navigate("/AdminPanel/TeacherAddpage");
     }
     if (option === "Show Details") {
-      navigate("/TeacherList"); // optional route — change as needed
+      navigate("/AdminPanel/TeacherList"); // optional route — change as needed
     }
   };
 
@@ -28,7 +28,7 @@ function UserManagement() {
 
       <div className="space-y-3">
         <button
-          onClick={() => navigate("/studentsList")}
+          onClick={() => navigate("/AdminPanel/studentsList")}
           className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100"
         >
           View Students

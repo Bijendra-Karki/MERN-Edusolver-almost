@@ -44,10 +44,9 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
- 
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard icon={<Users className="w-6 h-6 text-blue-600" />} label="Total Users" value="1,234" color="blue" />
@@ -67,10 +66,8 @@ export default function AdminPanel() {
             <h2 className="text-xl font-bold text-gray-800 mb-4">Exam Management</h2>
             <div className="space-y-3">
               <ExamOpener/>
-               <button className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
-                Exam Details
-              </button>
-              <button className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
+             
+              <button onClick={() => navigate("/AdminPanel/UserResult")}  className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
                 User Result
               </button>
             </div>
@@ -83,11 +80,11 @@ export default function AdminPanel() {
                 Manage Courses
               </button>
               <CourseOpener />
-               <button onClick={() => navigate("/CategoryAddpage")} className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
+               <button onClick={() => navigate("/AdminPanel/CategoryAddpage")} className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
                Add Category
               </button>
               <ResponseOpener />
-              <button onClick={() => navigate("/feed")} className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
+              <button onClick={() => navigate("/AdminPanel/feed")} className="w-full text-left p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all duration-300 text-gray-800 border border-blue-100">
                 Content Analytics
               </button>
             </div>

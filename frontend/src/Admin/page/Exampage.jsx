@@ -25,8 +25,8 @@ export default function Exampage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-12">
+      <div className="max-w-8xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Exam Management</h1>
           <p className="text-gray-600">Create and manage exams, exam sets, and questions</p>

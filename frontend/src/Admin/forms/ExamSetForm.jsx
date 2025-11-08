@@ -187,7 +187,7 @@ export default function ExamSetForm() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-10 py-10">
+    <div className="w-full max-w-8xl mx-auto space-y-10 py-10">
       {/* FORM */}
       <form onSubmit={handleSubmit} className="space-y-6 p-8 bg-white rounded-xl shadow-lg border border-gray-200">
         {alert && (

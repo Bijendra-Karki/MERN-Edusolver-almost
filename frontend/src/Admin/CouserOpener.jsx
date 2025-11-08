@@ -7,7 +7,7 @@ export default function CourseOpener() {
 
   const handleOptionClick = () => {
     console.log("Navigating to Add Course page...");
-    navigate("/CourseAddpage");
+    navigate("/AdminPanel/CourseAddpage");
   };
 
   return (

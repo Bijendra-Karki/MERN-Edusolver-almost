@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useNavigate, useSearchParams, Outlet } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 
 import {
   BookOpen,
@@ -19,13 +19,8 @@ import {
   Award,
   Target,
   Activity,
-  ChevronRight,
   Brain,
-  Zap,
-  CheckCircle,
-  MessageSquare,
-  Play,
-  AlertCircle,
+  MessageSquare
 } from "lucide-react"
 import ExpertsList from "./ExpertsList"
 import Feed from "../components/feed/Feed"

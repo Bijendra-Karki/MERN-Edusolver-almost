@@ -7,7 +7,7 @@ export default function ExamOpener() {
 
   const handleOptionClick = () => {
     console.log("Navigating to Create Exam page...");
-    navigate("/Exampage");
+    navigate("/AdminPanel/Exampage");
   };
 
   return (

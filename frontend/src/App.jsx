@@ -49,6 +49,8 @@ import CategoryManagement from "./Admin/forms/AddCategory";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Footer from "./components/ToperFooter/Footer";
 import StudentRoute from "./client/StudentRoute";
+import AdminRoute from "./Admin/adminRoute";
+import UserResult from "./Admin/page/UserResult";
 
 // --- Home placeholders ---
 const AdminHome = () => <div className="p-6">Admin Panel Dashboard Home</div>;
@@ -141,12 +143,12 @@ function AppContent() {
           <Route
             path="/adminPanel"
             element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminPanel />
-              </ProtectedRoute>
+            <AdminRoute>
+               <Outlet/>
+            </AdminRoute>
             }
           >
-            <Route index element={<AdminHome />} />
+            <Route index element={<AdminPanel/>} />
             <Route path="CourseAddpage" element={<CourseAddpage />} />
             <Route path="TeacherAddpage" element={<TeacherAddpage />} />
             <Route path="ResponseAddpage" element={<Responsepage />} />
@@ -154,6 +156,8 @@ function AppContent() {
             <Route path="studentsList" element={<StudentTable />} />
             <Route path="TeacherList" element={<TeacherTable />} />
             <Route path="CategoryAddpage" element={<CategoryManagement />} />
+            <Route path="UserResult" element={<UserResult />} />
+
           </Route>
 
           {/* --- Student Panel --- */}
